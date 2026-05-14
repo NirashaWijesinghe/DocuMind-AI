@@ -1,0 +1,53 @@
+# Virtual Environments
+venv/
+.venv/
+env/
+backend/venv/
+
+# Environment Variables & Sensitive Keys (NEVER COMMIT)
+.env
+.env.*
+backend/.env
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+backend/__pycache__/
+backend/app/__pycache__/
+backend/app/*/__pycache__/
+
+# Chroma Vector DB & Uploaded Documents
+backend/chroma_db/
+backend/uploads/*.pdf
+backend/uploads/documents_meta.json
+chroma_db/
+uploads/
+
+# Node.js & Next.js
+node_modules/
+frontend/node_modules/
+frontend/.next/
+.next/
+out/
+build/
+dist/
+.npm
+*.tsbuildinfo
+next-env.d.ts
+
+# Logs & System
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

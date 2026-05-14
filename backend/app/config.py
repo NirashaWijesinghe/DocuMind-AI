@@ -1,0 +1,40 @@
+﻿import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Base directory paths
+BASE_DIR = Path(__file__).resolve().parent.parent
+UPLOAD_DIR = BASE_DIR / "uploads"
+CHROMA_PERSIST_DIR = BASE_DIR / "chroma_db"
+
+# Ensure runtime directories exist
+UPLOAD_DIR.mkdir(exist_ok=True)
+CHROMA_PERSIST_DIR.mkdir(exist_ok=True)
+
+# Load environment variables from .env file
+load_dotenv(BASE_DIR / ".env")
+
+class Settings:
+    PROJECT_NAME: str = "DocuMind AI"
+    VERSION: str = "1.0.0"
+    DESCRIPTION: str = "Enterprise AI Document Intelligence & RAG Research Assistant API"
+    
+    # AI API Keys
+    GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
+    
+    # Model Configurations
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "models/embedding-001")
+    
+    # Storage Paths
+    UPLOAD_PATH: Path = UPLOAD_DIR
+    CHROMA_PATH: Path = CHROMA_PERSIST_DIR
+    
+    # CORS
+    ALLOWED_ORIGINS: list[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://*.vercel.app"
+    ]
+
+settings = Settings()
