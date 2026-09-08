@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { FileText, Trash2, Layers, Search, Sparkles, X } from "lucide-react";
+import { FileText, Trash2, Layers, Search, Sparkles, X, AlertTriangle } from "lucide-react";
 import { DocumentMeta, deleteDocument } from "../lib/api";
 
 interface DocumentListProps {
@@ -20,16 +20,20 @@ export default function DocumentList({
   onSummarizeDoc,
 }: DocumentListProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [docToDelete, setDocToDelete] = useState<DocumentMeta | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleDelete = async (docId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (confirm("Are you sure you want to delete this document from the vector store?")) {
-      try {
-        await deleteDocument(docId);
-        onDeleteSuccess(docId);
-      } catch (err) {
-        alert("Failed to delete document.");
-      }
+  const confirmDelete = async () => {
+    if (!docToDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteDocument(docToDelete.doc_id);
+      onDeleteSuccess(docToDelete.doc_id);
+      setDocToDelete(null);
+    } catch (err) {
+      alert("Failed to delete document. Please check the backend.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -134,7 +138,10 @@ export default function DocumentList({
                     </button>
                   )}
                   <button
-                    onClick={(e) => handleDelete(doc.doc_id, e)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDocToDelete(doc);
+                    }}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
                     title="Delete document"
                   >
@@ -144,6 +151,41 @@ export default function DocumentList({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Custom Glassmorphic Delete Confirmation Modal */}
+      {docToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shadow-lg shadow-rose-500/10">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+
+            <div className="space-y-1">
+              <h4 className="text-base font-bold text-slate-100">Delete Document?</h4>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Are you sure you want to delete <span className="text-rose-300 font-semibold truncate">"{docToDelete.filename}"</span>? All indexed vector embeddings will be permanently removed from ChromaDB.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 w-full pt-2">
+              <button
+                onClick={() => setDocToDelete(null)}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition-all cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-xs font-semibold text-white transition-all shadow-lg shadow-rose-600/20 cursor-pointer disabled:opacity-50"
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
