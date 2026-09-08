@@ -49,7 +49,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Header */}
-      <header className="relative z-10 border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-xl sticky top-0 px-6 py-4">
+      <header className="sticky top-0 z-50 border-b border-slate-800/80 bg-[#060919]/90 backdrop-blur-md px-6 py-4 shadow-lg shadow-black/20">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-400 via-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-sky-500/20">
