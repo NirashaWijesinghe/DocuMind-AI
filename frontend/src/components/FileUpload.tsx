@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useRef } from "react";
 import { UploadCloud, CheckCircle2, AlertCircle, Loader2, FileUp } from "lucide-react";
@@ -43,7 +43,7 @@ export default function FileUpload({ onUploadSuccess }: FileUploadProps) {
       const result = await uploadDocument(file);
       setUploadStatus({
         type: "success",
-        message: `Indexed "${file.name}" (${result.document.total_pages} pages, ${result.document.total_chunks} vector chunks)`,
+        message: `Processed "${file.name}" (${result.document.total_pages} pages, ${result.document.total_chunks} knowledge blocks)`,
       });
       onUploadSuccess(result.document);
     } catch (error: any) {
@@ -114,7 +114,7 @@ export default function FileUpload({ onUploadSuccess }: FileUploadProps) {
 
           <div className="inline-flex items-center gap-1.5 text-[11px] text-sky-400 font-medium px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/20">
             <FileUp className="w-3 h-3" />
-            <span>Automatic Vector Chunking & Embedding</span>
+            <span>Automatic Semantic Indexing & Extraction</span>
           </div>
         </div>
       </div>

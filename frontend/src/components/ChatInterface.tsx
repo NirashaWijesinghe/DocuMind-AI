@@ -18,7 +18,14 @@ import {
   AlertCircle,
   HelpCircle
 } from "lucide-react";
-import { sendChatMessage, summarizeDocument, ChatMessage, DocumentMeta } from "../lib/api";
+import { 
+  sendChatMessage, 
+  summarizeDocument, 
+  fetchSessionDetail,
+  ChatMessage, 
+  DocumentMeta, 
+  ChatSession 
+} from "../lib/api";
 import SourceBadge from "./SourceBadge";
 
 interface ChatInterfaceProps {
@@ -26,13 +33,23 @@ interface ChatInterfaceProps {
   selectedDocId: string | null;
   triggerSummaryDocId?: string | null;
   onResetTriggerSummary?: () => void;
+  activeSessionId: string | null;
+  sessions: ChatSession[];
+  onRefreshSessions: () => void;
+  setActiveSessionId: (sessionId: string | null) => void;
+  onNewChat: () => void;
 }
 
 export default function ChatInterface({ 
   documents, 
   selectedDocId,
   triggerSummaryDocId,
-  onResetTriggerSummary
+  onResetTriggerSummary,
+  activeSessionId,
+  sessions,
+  onRefreshSessions,
+  setActiveSessionId,
+  onNewChat
 }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputPrompt, setInputPrompt] = useState("");
@@ -49,6 +66,28 @@ export default function ChatInterface({
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
+
+  // Load session messages when activeSessionId changes
+  useEffect(() => {
+    if (activeSessionId) {
+      const loadSessionMessages = async () => {
+        setIsLoading(true);
+        try {
+          const detail = await fetchSessionDetail(activeSessionId);
+          if (detail && detail.messages) {
+            setMessages(detail.messages);
+          }
+        } catch (error) {
+          console.error("Failed to load session messages", error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      loadSessionMessages();
+    } else {
+      setMessages([]);
+    }
+  }, [activeSessionId]);
 
   // Handle external trigger for document summarization (from DocumentList)
   useEffect(() => {
@@ -81,10 +120,18 @@ export default function ChatInterface({
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, assistantMessage]);
+      onRefreshSessions();
     } catch (error: any) {
-      // Fallback to chat endpoint if summarize endpoint encounters issue
       try {
-        const response = await sendChatMessage("Summarize the entire document and list key takeaways with metrics.", docId);
+        const response = await sendChatMessage(
+          "Summarize the entire document and list key takeaways with metrics.",
+          docId,
+          [],
+          activeSessionId
+        );
+        if (!activeSessionId && response.session_id) {
+          setActiveSessionId(response.session_id);
+        }
         const assistantMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
@@ -93,6 +140,7 @@ export default function ChatInterface({
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         };
         setMessages((prev) => [...prev, assistantMessage]);
+        onRefreshSessions();
       } catch (err: any) {
         const errMsg: ChatMessage = {
           id: (Date.now() + 1).toString(),
@@ -124,7 +172,16 @@ export default function ChatInterface({
 
     try {
       const history = messages.map((m) => ({ role: m.role, content: m.content }));
-      const response = await sendChatMessage(userMessage.content, selectedDocId || undefined, history);
+      const response = await sendChatMessage(
+        userMessage.content, 
+        selectedDocId || undefined, 
+        history,
+        activeSessionId
+      );
+
+      if (!activeSessionId && response.session_id) {
+        setActiveSessionId(response.session_id);
+      }
 
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -135,6 +192,7 @@ export default function ChatInterface({
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+      onRefreshSessions();
     } catch (error: any) {
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -192,37 +250,42 @@ export default function ChatInterface({
     { label: "Recommended Actions", text: "What are the recommended action items, next steps, and conclusions?", icon: HelpCircle },
   ];
 
+  const currentActiveSession = sessions.find((s) => s.id === activeSessionId);
+
   return (
-    <div className="flex flex-col h-[700px] bg-slate-900/50 rounded-2xl border border-slate-800/90 overflow-hidden shadow-2xl backdrop-blur-xl">
+    <div className="relative flex flex-col h-[740px] bg-slate-900/50 rounded-2xl border border-slate-800/90 overflow-hidden shadow-2xl backdrop-blur-xl">
       {/* Chat Header */}
-      <div className="px-6 py-4 border-b border-slate-800/80 bg-slate-900/80 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-400 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-sky-500/20">
+      <div className="px-5 py-3.5 border-b border-slate-800/80 bg-slate-900/80 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-400 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-sky-500/20 shrink-0">
             <Sparkles className="w-5 h-5" />
           </div>
-          <div>
-            <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
-              DocuMind AI Assistant
-              <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-mono border border-emerald-500/20">
-                Gemini RAG Engine
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-slate-100 truncate">
+                {currentActiveSession ? currentActiveSession.title : "DocuMind AI Assistant"}
+              </h3>
+              <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-medium border border-emerald-500/20 shrink-0">
+                Powered by Gemini AI
               </span>
-            </h3>
-            <p className="text-xs text-slate-400">
+            </div>
+            <p className="text-xs text-slate-400 truncate">
               {selectedDoc ? (
-                <span className="text-sky-400 font-medium">Focusing on: {selectedDoc.filename}</span>
+                <span className="text-sky-400 font-medium">Doc: {selectedDoc.filename}</span>
               ) : (
-                <span>Searching across all uploaded documents</span>
+                <span>All documents</span>
               )}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Clean Header Actions (Export & Clear only) */}
+        <div className="flex items-center gap-2 shrink-0">
           {messages.length > 0 && (
             <>
               <button
                 onClick={handleExportChat}
-                className="text-xs text-slate-400 hover:text-sky-300 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 hover:border-sky-500/40 hover:bg-sky-950/20 transition-all cursor-pointer"
+                className="text-xs text-slate-400 hover:text-sky-300 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-800 hover:border-sky-500/40 hover:bg-sky-950/20 transition-all cursor-pointer"
                 title="Download chat transcript as Markdown"
               >
                 <Download className="w-3.5 h-3.5" />
@@ -230,9 +293,12 @@ export default function ChatInterface({
               </button>
 
               <button
-                onClick={() => setMessages([])}
-                className="text-xs text-slate-400 hover:text-rose-400 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 hover:border-rose-900/50 hover:bg-rose-950/20 transition-colors cursor-pointer"
-                title="Clear conversation"
+                onClick={() => {
+                  setMessages([]);
+                  onNewChat();
+                }}
+                className="text-xs text-slate-400 hover:text-rose-400 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-800 hover:border-rose-900/50 hover:bg-rose-950/20 transition-colors cursor-pointer"
+                title="Clear current conversation"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Clear</span>

@@ -25,6 +25,7 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str
+    session_id: Optional[str] = None
     doc_id: Optional[str] = None
     history: Optional[List[ChatMessage]] = []
 
@@ -38,5 +39,32 @@ class SourceCitation(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
     sources: List[SourceCitation]
+    session_id: Optional[str] = None
     doc_id: Optional[str] = None
     model_used: str = "gemini-1.5-flash"
+
+class ChatSessionMeta(BaseModel):
+    id: str
+    title: str
+    doc_id: Optional[str] = None
+    created_at: str
+    updated_at: str
+    message_count: int = 0
+
+class CreateSessionRequest(BaseModel):
+    title: Optional[str] = "New Chat"
+    doc_id: Optional[str] = None
+
+class SavedChatMessage(BaseModel):
+    id: str
+    session_id: str
+    role: str
+    content: str
+    sources: Optional[List[SourceCitation]] = []
+    timestamp: str
+    created_at: str
+
+class SessionDetailResponse(BaseModel):
+    session: ChatSessionMeta
+    messages: List[SavedChatMessage]
+

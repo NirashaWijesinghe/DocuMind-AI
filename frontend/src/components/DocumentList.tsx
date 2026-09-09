@@ -115,7 +115,7 @@ export default function DocumentList({
                       <span>•</span>
                       <span className="flex items-center gap-1">
                         <Layers className="w-3 h-3 text-slate-400" />
-                        {doc.total_chunks} chunks
+                        {doc.total_chunks} blocks
                       </span>
                       <span>•</span>
                       <span>{doc.file_size_kb} KB</span>

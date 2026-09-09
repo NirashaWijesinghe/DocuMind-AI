@@ -23,10 +23,15 @@ backend/__pycache__/
 backend/app/__pycache__/
 backend/app/*/__pycache__/
 
-# Chroma Vector DB & Uploaded Documents
+# Chroma Vector DB & Uploaded Documents & SQLite DB
 backend/chroma_db/
 backend/uploads/*.pdf
 backend/uploads/documents_meta.json
+backend/*.db
+backend/*.sqlite3
+*.db
+*.sqlite
+*.sqlite3
 chroma_db/
 uploads/
 
