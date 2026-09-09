@@ -91,9 +91,6 @@ export default function DashboardPage() {
     }
   };
 
-  const totalPages = documents.reduce((acc, d) => acc + d.total_pages, 0);
-  const totalChunks = documents.reduce((acc, d) => acc + d.total_chunks, 0);
-
   return (
     <div className="min-h-screen bg-[#060919] text-slate-100 flex flex-col font-sans selection:bg-sky-500/30 selection:text-sky-200">
       {/* Background Neon Glow Elements */}
@@ -141,26 +138,7 @@ export default function DashboardPage() {
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Sidebar / Document Management & Recents (5 Columns) */}
-        <div className="lg:col-span-5 flex flex-col gap-5">
-          {/* Quick Metrics */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/80 backdrop-blur-md">
-              <div className="flex items-center justify-between text-slate-400 mb-1">
-                <span className="text-xs font-medium">Document Pages</span>
-                <FileText className="w-4 h-4 text-sky-400" />
-              </div>
-              <p className="text-2xl font-bold text-slate-100">{totalPages}</p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/80 backdrop-blur-md">
-              <div className="flex items-center justify-between text-slate-400 mb-1">
-                <span className="text-xs font-medium">Knowledge Blocks</span>
-                <Layers className="w-4 h-4 text-indigo-400" />
-              </div>
-              <p className="text-2xl font-bold text-slate-100">{totalChunks}</p>
-            </div>
-          </div>
-
+        <div className="lg:col-span-5 flex flex-col gap-4">
           {/* Left Panel Tabs: Documents vs Recents (NotebookLM style) */}
           <div className="flex items-center p-1 rounded-xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-md">
             <button
