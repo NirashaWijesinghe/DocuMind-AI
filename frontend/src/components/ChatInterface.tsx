@@ -15,8 +15,13 @@ import {
   Download, 
   FileText, 
   BarChart3, 
-  AlertCircle,
-  HelpCircle
+  AlertCircle, 
+  HelpCircle,
+  FileDown,
+  Printer,
+  ClipboardCopy,
+  CheckCheck,
+  ChevronDown
 } from "lucide-react";
 import { 
   sendChatMessage, 
@@ -212,9 +217,22 @@ export default function ChatInterface({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleExportChat = () => {
-    if (messages.length === 0) return;
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [allCopied, setAllCopied] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
 
+  // Close export menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const generateMarkdownTranscript = () => {
     let markdown = `# DocuMind AI - Document Research Transcript\n`;
     markdown += `Generated on: ${new Date().toLocaleString()}\n`;
     markdown += `Focus Document: ${selectedDoc ? selectedDoc.filename : "All Knowledge Base Documents"}\n\n`;
@@ -232,15 +250,108 @@ export default function ChatInterface({
       }
       markdown += `---\n\n`;
     });
+    return markdown;
+  };
 
+  const handleExportMarkdown = () => {
+    if (messages.length === 0) return;
+    const markdown = generateMarkdownTranscript();
     const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `DocuMind_Chat_${Date.now()}.md`);
+    link.setAttribute("download", `DocuMind_Research_${Date.now()}.md`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setShowExportMenu(false);
+  };
+
+  const handleExportPDF = () => {
+    if (messages.length === 0) return;
+    setShowExportMenu(false);
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    let contentHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>DocuMind AI Research Report</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #1a202c;
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+          }
+          h1 { color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 8px; font-size: 22px; }
+          .meta { color: #64748b; font-size: 13px; margin-bottom: 30px; }
+          .message { margin-bottom: 24px; padding: 18px; border-radius: 12px; }
+          .user { background-color: #f1f5f9; border-left: 4px solid #3b82f6; }
+          .assistant { background-color: #f8fafc; border-left: 4px solid #10b981; border: 1px solid #e2e8f0; border-left-width: 4px; }
+          .author { font-weight: 600; font-size: 14px; margin-bottom: 8px; color: #334155; }
+          .body { font-size: 14px; white-space: pre-wrap; }
+          .citations { margin-top: 14px; padding-top: 10px; border-top: 1px dashed #cbd5e1; font-size: 12px; color: #475569; }
+          .citation-item { margin-top: 4px; }
+          @media print {
+            body { padding: 0; }
+            .message { page-break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>DocuMind AI — Research Transcript</h1>
+        <div class="meta">
+          <strong>Document:</strong> ${selectedDoc ? selectedDoc.filename : "All Knowledge Base Documents"} &nbsp;|&nbsp; 
+          <strong>Date:</strong> ${new Date().toLocaleString()}
+        </div>
+    `;
+
+    messages.forEach((m) => {
+      const isUser = m.role === "user";
+      contentHtml += `
+        <div class="message ${isUser ? "user" : "assistant"}">
+          <div class="author">${isUser ? "👤 User Query" : "🧠 DocuMind AI Analysis"} (${m.timestamp})</div>
+          <div class="body">${m.content}</div>
+      `;
+
+      if (m.sources && m.sources.length > 0) {
+        contentHtml += `<div class="citations"><strong>Verified Page Citations:</strong>`;
+        m.sources.forEach((s) => {
+          contentHtml += `<div class="citation-item">• <strong>${s.filename}</strong> (Page ${s.page_number}): "${s.content}"</div>`;
+        });
+        contentHtml += `</div>`;
+      }
+
+      contentHtml += `</div>`;
+    });
+
+    contentHtml += `
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(contentHtml);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
+
+  const handleCopyTranscript = () => {
+    if (messages.length === 0) return;
+    const markdown = generateMarkdownTranscript();
+    navigator.clipboard.writeText(markdown);
+    setAllCopied(true);
+    setTimeout(() => {
+      setAllCopied(false);
+      setShowExportMenu(false);
+    }, 1500);
   };
 
   const samplePrompts = [
@@ -279,18 +390,73 @@ export default function ChatInterface({
           </div>
         </div>
 
-        {/* Clean Header Actions (Export & Clear only) */}
+        {/* Clean Header Actions (Export Dropdown & Clear only) */}
         <div className="flex items-center gap-2 shrink-0">
           {messages.length > 0 && (
             <>
-              <button
-                onClick={handleExportChat}
-                className="text-xs text-slate-400 hover:text-sky-300 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-800 hover:border-sky-500/40 hover:bg-sky-950/20 transition-all cursor-pointer"
-                title="Download chat transcript as Markdown"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Export</span>
-              </button>
+              {/* Export Dropdown */}
+              <div className="relative" ref={exportMenuRef}>
+                <button
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  className={`text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                    showExportMenu
+                      ? "bg-sky-500/20 border-sky-500/50 text-sky-300"
+                      : "bg-slate-800/60 border-slate-700/60 text-slate-300 hover:border-sky-500/40 hover:text-sky-300"
+                  }`}
+                  title="Export options"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline font-medium">Export</span>
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                </button>
+
+                {showExportMenu && (
+                  <div className="absolute right-0 top-full mt-2 w-56 rounded-xl bg-[#090d24] border border-slate-700/80 shadow-2xl p-1.5 z-50 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-2.5 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800 mb-1">
+                      Export Research Transcript
+                    </div>
+
+                    <button
+                      onClick={handleExportMarkdown}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-sky-500/15 hover:text-sky-300 transition-colors text-left cursor-pointer group"
+                    >
+                      <FileDown className="w-4 h-4 text-sky-400 shrink-0" />
+                      <div>
+                        <div className="font-medium leading-tight">Markdown (.md)</div>
+                        <div className="text-[10px] text-slate-400">For Notion, Obsidian & Notes</div>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={handleExportPDF}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-indigo-500/15 hover:text-indigo-300 transition-colors text-left cursor-pointer group"
+                    >
+                      <Printer className="w-4 h-4 text-indigo-400 shrink-0" />
+                      <div>
+                        <div className="font-medium leading-tight">Print / Save as PDF</div>
+                        <div className="text-[10px] text-slate-400">Formatted Report for sharing</div>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={handleCopyTranscript}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-emerald-500/15 hover:text-emerald-300 transition-colors text-left cursor-pointer group"
+                    >
+                      {allCopied ? (
+                        <CheckCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                      ) : (
+                        <ClipboardCopy className="w-4 h-4 text-emerald-400 shrink-0" />
+                      )}
+                      <div>
+                        <div className="font-medium leading-tight">
+                          {allCopied ? "Copied to Clipboard!" : "Copy Full Transcript"}
+                        </div>
+                        <div className="text-[10px] text-slate-400">Copy text with citations</div>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <button
                 onClick={() => {
