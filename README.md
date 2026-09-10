@@ -1,4 +1,4 @@
-# DocuMind AI 📄🧠 | Enterprise AI Document Intelligence & RAG SaaS Platform
+# LexiGuard AI ⚖️🛡️ | Enterprise Legal Contract Intelligence & Risk Auditor
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Python 3.12](https://img.shields.io/badge/Python_3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
@@ -7,56 +7,57 @@
 [![Google Gemini](https://img.shields.io/badge/Gemini_1.5_Flash-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 
-**DocuMind AI** is an enterprise-grade, full-stack AI Document Intelligence SaaS application. It enables users to upload extensive PDF documents (financial statements, research papers, legal contracts), automatically parses & indexes them into semantic vector embeddings, and allows conversational question-answering with verifiable, page-level citations powered by **Retrieval-Augmented Generation (RAG)** and **Google Gemini LLM**.
+**LexiGuard AI** is an enterprise-grade Legal Tech SaaS platform for automated contract intelligence, legal due diligence, and risk redlining. Unlike generic LLM chat tools, LexiGuard AI executes structured compliance audits across legal agreements (NDAs, MSAs, Employment Contracts, Vendor SLAs), calculates an automated **Contract Risk Score (0-100)**, flags hazardous clauses (Unlimited Liability, Restrictive Non-Competes, Ambiguous Termination), detects missing protective terms (Negative RAG), and auto-drafts reciprocal counter-clauses with pinpoint page-level citations.
 
 ---
 
-## 🌟 Key Features
+## 🌟 Key Enterprise Capabilities
 
-- 📑 **Intelligent PDF Chunking Engine:** Splits long documents into overlapping semantic chunks (`RecursiveCharacterTextSplitter`) while maintaining page-level metadata.
-- ⚡ **High-Performance Vector Storage:** Persistent vector storage powered by **ChromaDB** with cosine similarity search.
-- 🎯 **Verifiable Page Citations:** Every AI answer includes exact source document citations, page numbers, and matching text snippets.
-- ⚡ **One-Click Auto-Summarization:** Instantly generate structured Executive Summaries, Key Metrics, and Action Items for any document.
-- 📊 **Rich Markdown & Code Rendering:** Full support for bullet points, markdown tables, bold highlights, and syntax formatting.
-- 📋 **Export & Copy Utility:** One-click markdown chat transcript export and response clipboard copy.
-- 🔍 **Real-Time Document Search:** Instant document filter and multi-document query routing.
-- 💬 **Targeted or Global Knowledge Querying:** Query a single isolated document or search across the entire multi-document knowledge base.
-- 🎨 **Futuristic Glassmorphic Interface:** Sleek dark-mode dashboard built with **Next.js 15**, **Tailwind CSS**, and **Lucide Icons**.
-- 🚀 **Asynchronous High-Throughput Backend:** Built with **Python 3.12** and **FastAPI** with automatic Swagger API documentation.
+- ⚖️ **Automated Contract Risk Scoring (0-100):** Instantly calculates risk severity (`CRITICAL`, `HIGH`, `MEDIUM`, `SAFE`) based on a standardized legal audit rubric.
+- 🚨 **Clause Redline & Hazard Matrix:** Identifies risky clauses, provides plain-English legal risk explanations, and auto-drafts fair **AI Counter-Clauses** ready to copy.
+- ⚠️ **Missing Clause Detection (Negative Pattern RAG):** Audits for omitted essential terms (e.g. Limitation of Liability Caps, Mutual Termination, GDPR Data Breach Notifications).
+- 💬 **LexiGuard Legal Copilot:** Multi-turn legal assistant capable of drafting redlines, checking liability caps, and answering queries with exact page citations.
+- 📋 **One-Click Due Diligence Report Export:** Generates executive Markdown and PDF audit reports ready for attorneys, executives, or clients.
+- ⚡ **ChromaDB Clause Vector Store:** Persistent dense vector retrieval indexed page-by-page.
+- 🎨 **Futuristic Enterprise Glassmorphism UI:** Built with **Next.js 15**, **Tailwind CSS**, and **Lucide Icons**.
 
 ---
 
-## 🏗️ System Architecture & RAG Pipeline
+## 🏗️ System Architecture & Legal RAG Pipeline
 
 ```mermaid
 flowchart TD
     subgraph Client ["Frontend (Next.js 15 + TypeScript)"]
-        UI[Glassmorphic UI]
-        Upload[Drag & Drop Uploader]
-        Chat[Chat Interface with Citations]
+        UI[Glassmorphic Legal Dashboard]
+        Upload[Contract Drag & Drop Uploader]
+        AuditMatrix[Risk & Redline Matrix View]
+        Copilot[Legal Copilot Consultation]
     end
 
     subgraph Server ["Backend (Python FastAPI)"]
         API[FastAPI Endpoints]
-        Parser[PyPDF Text Extractor]
+        Parser[PyPDF Page-by-Page Extractor]
         Chunker[LangChain Semantic Splitter]
     end
 
     subgraph AI_Engine ["AI & Vector Store"]
         Chroma[(ChromaDB Vector Store)]
-        LLM[Google Gemini 1.5 Flash]
+        Gemini[Google Gemini 1.5 Flash]
     end
 
-    Upload -->|1. Upload PDF| API
-    API -->|2. Extract text page-by-page| Parser
-    Parser -->|3. Overlapping Chunks| Chunker
+    Upload -->|1. Upload Agreement PDF| API
+    API -->|2. Extract text & page metadata| Parser
+    Parser -->|3. Overlapping Legal Chunks| Chunker
     Chunker -->|4. Vector Embeddings| Chroma
 
-    Chat -->|5. Ask Question| API
-    API -->|6. Semantic Similarity Query| Chroma
-    Chroma -->|7. Top-K Matching Paragraphs| API
-    API -->|8. Grounded Prompt + Context| LLM
-    LLM -->|9. Accurate Answer + Citations| Chat
+    AuditMatrix -->|5. Trigger Due Diligence Audit| API
+    API -->|6. Semantic Retrieval + Legal Rubric| Chroma
+    Chroma -->|7. Retrieved Context| API
+    API -->|8. Structured JSON Analysis| Gemini
+    Gemini -->|9. Risk Score + Redlines + Counter-Clauses| AuditMatrix
+
+    Copilot -->|10. Query Legal Terms / Redline| API
+    API -->|11. Grounded Response + Page Citations| Copilot
 ```
 
 ---
@@ -106,3 +107,4 @@ npm run dev
 
 ## 📜 License
 This project is licensed under the [MIT License](LICENSE).
+

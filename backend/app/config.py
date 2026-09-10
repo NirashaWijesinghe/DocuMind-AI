@@ -1,4 +1,4 @@
-﻿import os
+import os
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -15,9 +15,9 @@ CHROMA_PERSIST_DIR.mkdir(exist_ok=True)
 load_dotenv(BASE_DIR / ".env")
 
 class Settings:
-    PROJECT_NAME: str = "DocuMind AI"
-    VERSION: str = "1.0.0"
-    DESCRIPTION: str = "Enterprise AI Document Intelligence & RAG Research Assistant API"
+    PROJECT_NAME: str = "LexiGuard AI"
+    VERSION: str = "2.0.0"
+    DESCRIPTION: str = "Enterprise Legal Contract Intelligence, Automated Risk Scoring & Redline Compliance Auditor API"
     
     # AI API Keys
     GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")

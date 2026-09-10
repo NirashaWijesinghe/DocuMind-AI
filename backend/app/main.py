@@ -41,7 +41,7 @@ async def health_check():
 @app.get("/", tags=["Root"])
 async def root():
     return {
-        "message": "Welcome to DocuMind AI Backend API",
+        "message": "Welcome to LexiGuard AI Backend API",
         "docs": "/docs",
         "health": "/api/health"
     }

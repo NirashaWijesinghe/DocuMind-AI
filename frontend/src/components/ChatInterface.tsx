@@ -21,12 +21,15 @@ import {
   Printer,
   ClipboardCopy,
   CheckCheck,
-  ChevronDown
+  ChevronDown,
+  Paperclip,
+  X
 } from "lucide-react";
 import { 
   sendChatMessage, 
   summarizeDocument, 
   fetchSessionDetail,
+  uploadDocument,
   ChatMessage, 
   DocumentMeta, 
   ChatSession 
@@ -36,31 +39,42 @@ import SourceBadge from "./SourceBadge";
 interface ChatInterfaceProps {
   documents: DocumentMeta[];
   selectedDocId: string | null;
+  setSelectedDocId?: (docId: string | null) => void;
+  onUploadDocSuccess?: (doc: DocumentMeta) => void;
   triggerSummaryDocId?: string | null;
   onResetTriggerSummary?: () => void;
   activeSessionId: string | null;
   sessions: ChatSession[];
   onRefreshSessions: () => void;
+  onSelectSession?: (sessionId: string) => void;
   setActiveSessionId: (sessionId: string | null) => void;
   onNewChat: () => void;
+  onDeleteSession?: (sessionId: string, e: React.MouseEvent) => void;
 }
 
 export default function ChatInterface({ 
   documents, 
   selectedDocId,
+  setSelectedDocId,
+  onUploadDocSuccess,
   triggerSummaryDocId,
   onResetTriggerSummary,
   activeSessionId,
   sessions,
   onRefreshSessions,
+  onSelectSession,
   setActiveSessionId,
-  onNewChat
+  onNewChat,
+  onDeleteSession
 }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputPrompt, setInputPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingAttach, setIsUploadingAttach] = useState(false);
+  const [attachError, setAttachError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatFileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedDoc = documents.find((d) => d.doc_id === selectedDocId);
 
@@ -160,6 +174,44 @@ export default function ChatInterface({
     }
   };
 
+  const handleAttachFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      setAttachError("Please select a valid PDF document (.pdf only).");
+      return;
+    }
+
+    if (file.size > 20 * 1024 * 1024) {
+      setAttachError("File size exceeds 20MB limit.");
+      return;
+    }
+
+    setIsUploadingAttach(true);
+    setAttachError(null);
+    try {
+      const res = await uploadDocument(file);
+      if (res.document) {
+        if (onUploadDocSuccess) {
+          onUploadDocSuccess(res.document);
+        }
+        if (setSelectedDocId) {
+          setSelectedDocId(res.document.doc_id);
+        }
+      }
+    } catch (err: any) {
+      setAttachError(
+        err.response?.data?.detail || "Could not extract text. This PDF might be scanned or image-only."
+      );
+    } finally {
+      setIsUploadingAttach(false);
+      if (chatFileInputRef.current) {
+        chatFileInputRef.current.value = "";
+      }
+    }
+  };
+
   const handleSend = async (customText?: string) => {
     const textToSend = customText || inputPrompt;
     if (!textToSend.trim() || isLoading) return;
@@ -233,16 +285,16 @@ export default function ChatInterface({
   }, []);
 
   const generateMarkdownTranscript = () => {
-    let markdown = `# DocuMind AI - Document Research Transcript\n`;
+    let markdown = `# LexiGuard AI - Contract Legal Consultation Transcript\n`;
     markdown += `Generated on: ${new Date().toLocaleString()}\n`;
-    markdown += `Focus Document: ${selectedDoc ? selectedDoc.filename : "All Knowledge Base Documents"}\n\n`;
+    markdown += `Focus Contract: ${selectedDoc ? selectedDoc.filename : "All Indexed Agreements"}\n\n`;
     markdown += `---\n\n`;
 
     messages.forEach((m) => {
-      const author = m.role === "user" ? "👤 User" : "🧠 DocuMind AI";
+      const author = m.role === "user" ? "👤 Legal Counsel / User" : "⚖️ LexiGuard AI Legal Copilot";
       markdown += `### ${author} [${m.timestamp}]\n\n${m.content}\n\n`;
       if (m.sources && m.sources.length > 0) {
-        markdown += `**Verified Sources Cited:**\n`;
+        markdown += `**Verified Clause Citations:**\n`;
         m.sources.forEach((s) => {
           markdown += `- **${s.filename}** (Page ${s.page_number}): "${s.content}"\n`;
         });
@@ -260,7 +312,7 @@ export default function ChatInterface({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `DocuMind_Research_${Date.now()}.md`);
+    link.setAttribute("download", `LexiGuard_Legal_Consult_${Date.now()}.md`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -278,7 +330,7 @@ export default function ChatInterface({
       <!DOCTYPE html>
       <html>
       <head>
-        <title>DocuMind AI Research Report</title>
+        <title>LexiGuard AI Legal Consultation Report</title>
         <style>
           body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -296,18 +348,13 @@ export default function ChatInterface({
           .author { font-weight: 600; font-size: 14px; margin-bottom: 8px; color: #334155; }
           .body { font-size: 14px; white-space: pre-wrap; }
           .citations { margin-top: 14px; padding-top: 10px; border-top: 1px dashed #cbd5e1; font-size: 12px; color: #475569; }
-          .citation-item { margin-top: 4px; }
-          @media print {
-            body { padding: 0; }
-            .message { page-break-inside: avoid; }
-          }
         </style>
       </head>
       <body>
-        <h1>DocuMind AI — Research Transcript</h1>
+        <h1>⚖️ LexiGuard AI Legal Consultation Report</h1>
         <div class="meta">
-          <strong>Document:</strong> ${selectedDoc ? selectedDoc.filename : "All Knowledge Base Documents"} &nbsp;|&nbsp; 
-          <strong>Date:</strong> ${new Date().toLocaleString()}
+          <strong>Target Agreement:</strong> ${selectedDoc ? selectedDoc.filename : "All Indexed Contracts"}<br>
+          <strong>Generated:</strong> ${new Date().toLocaleString()}
         </div>
     `;
 
@@ -315,14 +362,14 @@ export default function ChatInterface({
       const isUser = m.role === "user";
       contentHtml += `
         <div class="message ${isUser ? "user" : "assistant"}">
-          <div class="author">${isUser ? "👤 User Query" : "🧠 DocuMind AI Analysis"} (${m.timestamp})</div>
-          <div class="body">${m.content}</div>
+          <div class="author">${isUser ? "User / Legal Counsel" : "LexiGuard Legal Copilot"} (${m.timestamp})</div>
+          <div class="body">${m.content.replace(/\n/g, "<br>")}</div>
       `;
 
       if (m.sources && m.sources.length > 0) {
-        contentHtml += `<div class="citations"><strong>Verified Page Citations:</strong>`;
+        contentHtml += `<div class="citations"><strong>Verified Citations:</strong><br>`;
         m.sources.forEach((s) => {
-          contentHtml += `<div class="citation-item">• <strong>${s.filename}</strong> (Page ${s.page_number}): "${s.content}"</div>`;
+          contentHtml += `• <em>${s.filename}</em> (Page ${s.page_number}): "${s.content}"<br>`;
         });
         contentHtml += `</div>`;
       }
@@ -355,10 +402,10 @@ export default function ChatInterface({
   };
 
   const samplePrompts = [
-    { label: "Executive Summary", text: "Provide a complete Executive Summary and key takeaways for this document.", icon: FileText },
-    { label: "Key Metrics & Data", text: "Extract all important numerical metrics, statistics, and figures mentioned.", icon: BarChart3 },
-    { label: "Risks & Limitations", text: "What are the main risks, limitations, or caveats discussed in this document?", icon: AlertCircle },
-    { label: "Recommended Actions", text: "What are the recommended action items, next steps, and conclusions?", icon: HelpCircle },
+    { label: "Liability & Indemnity", text: "What is the liability cap and what are the indemnification obligations in this agreement?", icon: AlertCircle },
+    { label: "Non-Compete & Restrictions", text: "Is there a non-compete, exclusivity, or non-solicitation clause? What are the restrictions?", icon: FileText },
+    { label: "Termination & Breach", text: "What are the termination rights, notice periods, and breach remedies in this contract?", icon: BarChart3 },
+    { label: "Draft Redline Counter-Clause", text: "Draft a fair, mutual redline counter-clause for the highest risk liability section in this agreement.", icon: HelpCircle },
   ];
 
   const currentActiveSession = sessions.find((s) => s.id === activeSessionId);
@@ -368,23 +415,23 @@ export default function ChatInterface({
       {/* Chat Header */}
       <div className="px-5 py-3.5 border-b border-slate-800/80 bg-slate-900/80 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-400 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-sky-500/20 shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-sky-500 to-emerald-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 shrink-0">
             <Sparkles className="w-5 h-5" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-semibold text-slate-100 truncate">
-                {currentActiveSession ? currentActiveSession.title : "DocuMind AI Assistant"}
+                {currentActiveSession ? currentActiveSession.title : "LexiGuard Legal Copilot"}
               </h3>
               <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-medium border border-emerald-500/20 shrink-0">
-                Powered by Gemini AI
+                Legal AI Engine
               </span>
             </div>
             <p className="text-xs text-slate-400 truncate">
               {selectedDoc ? (
-                <span className="text-sky-400 font-medium">Doc: {selectedDoc.filename}</span>
+                <span className="text-sky-400 font-medium">Contract: {selectedDoc.filename}</span>
               ) : (
-                <span>All documents</span>
+                <span>All Indexed Contracts</span>
               )}
             </p>
           </div>
@@ -483,16 +530,16 @@ export default function ChatInterface({
               <Bot className="w-8 h-8" />
             </div>
             <div>
-              <h4 className="text-base font-semibold text-slate-200">Ask anything about your documents</h4>
+              <h4 className="text-base font-semibold text-slate-200">Ask LexiGuard Legal Copilot</h4>
               <p className="text-xs text-slate-400 mt-1">
-                DocuMind will retrieve the exact paragraphs, cite page numbers, and formulate accurate answers.
+                Retrieve exact contract clauses, verify liability limits, draft counter-clauses, and cite pinpoint page numbers.
               </p>
             </div>
 
             {documents.length > 0 && (
               <div className="w-full pt-2 space-y-2">
                 <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wider">
-                  Quick Research Actions
+                  Legal Consultation Quick Actions
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
                   {samplePrompts.map((prompt, idx) => {
@@ -627,6 +674,48 @@ export default function ChatInterface({
 
       {/* Input Field & Prompt Chips */}
       <div className="p-4 border-t border-slate-800/80 bg-slate-900/90 flex flex-col gap-2">
+        {/* Attachment Error Banner */}
+        {attachError && (
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-rose-950/50 border border-rose-800/60 text-xs text-rose-300 animate-fadeIn">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{attachError}</span>
+            </div>
+            <button
+              onClick={() => setAttachError(null)}
+              className="text-rose-400 hover:text-rose-200 p-1 rounded-md cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* Attached Document Pill / Context Bar */}
+        {selectedDoc && (
+          <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-sky-950/40 border border-sky-800/40 text-xs animate-fadeIn">
+            <div className="flex items-center gap-2 text-sky-300 min-w-0">
+              <Paperclip className="w-3.5 h-3.5 shrink-0 text-sky-400" />
+              <span className="font-medium truncate max-w-[280px] sm:max-w-[400px]">
+                Target Document: {selectedDoc.filename}
+              </span>
+              <span className="text-[10px] text-sky-400/80 shrink-0">
+                ({selectedDoc.total_pages} pages, {selectedDoc.total_chunks} chunks)
+              </span>
+            </div>
+            {setSelectedDocId && (
+              <button
+                type="button"
+                onClick={() => setSelectedDocId(null)}
+                className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-rose-300 px-2 py-0.5 rounded-md hover:bg-slate-800/80 transition-colors cursor-pointer shrink-0"
+                title="Switch scope to search across all documents"
+              >
+                <span>Query All Docs</span>
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        )}
+
         {selectedDoc && (
           <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
             <span className="text-[11px] text-slate-400 font-medium shrink-0">Quick Ask:</span>
@@ -662,12 +751,35 @@ export default function ChatInterface({
           className="flex items-center gap-2"
         >
           <input
+            type="file"
+            ref={chatFileInputRef}
+            onChange={handleAttachFile}
+            accept=".pdf"
+            className="hidden"
+          />
+
+          {/* Attachment Paperclip Button */}
+          <button
+            type="button"
+            onClick={() => chatFileInputRef.current?.click()}
+            disabled={isUploadingAttach || isLoading}
+            title="Attach a new PDF document directly to chat"
+            className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-sky-500/50 hover:bg-slate-900 text-slate-400 hover:text-sky-300 transition-all cursor-pointer disabled:opacity-40"
+          >
+            {isUploadingAttach ? (
+              <Loader2 className="w-4 h-4 animate-spin text-sky-400" />
+            ) : (
+              <Paperclip className="w-4 h-4" />
+            )}
+          </button>
+
+          <input
             type="text"
             value={inputPrompt}
             onChange={(e) => setInputPrompt(e.target.value)}
             placeholder={
               documents.length === 0
-                ? "Please upload a document to enable AI chat..."
+                ? "Please upload a document or attach PDF to enable AI chat..."
                 : selectedDoc
                 ? `Ask anything about ${selectedDoc.filename}...`
                 : "Ask a question across all documents in knowledge base..."

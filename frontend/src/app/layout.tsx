@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DocuMind AI | Enterprise Document Intelligence & RAG Platform",
-  description: "AI-Powered PDF Intelligence, Semantic Vector Search, and Grounded Question Answering with Citations.",
+  title: "LexiGuard AI ⚖️🛡️ | Enterprise Legal Contract Intelligence & Risk Auditor",
+  description: "AI-Powered Legal Contract Risk Scoring, Redline Analysis, Missing Clause Auditing, and Grounded Legal Copilot.",
 };
 
 export default function RootLayout({

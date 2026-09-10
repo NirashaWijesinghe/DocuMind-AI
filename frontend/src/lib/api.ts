@@ -13,6 +13,10 @@ export interface DocumentMeta {
   total_pages: number;
   total_chunks: number;
   uploaded_at: string;
+  risk_score?: number | null;
+  risk_level?: string | null;
+  is_legal_contract?: boolean | null;
+  document_category?: string | null;
 }
 
 export interface SourceCitation {
@@ -46,11 +50,69 @@ export interface SessionDetail {
   messages: ChatMessage[];
 }
 
+export interface ContractClauseRisk {
+  category: string;
+  clause_title: string;
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "SAFE" | string;
+  page_number: number;
+  original_text: string;
+  risk_explanation: string;
+  recommended_revision: string;
+}
+
+export interface MissingClauseAlert {
+  clause_name: string;
+  importance: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | string;
+  reason: string;
+  suggested_language: string;
+}
+
+export interface ContractAuditReport {
+  doc_id: string;
+  filename: string;
+  is_legal_contract?: boolean;
+  document_category?: string;
+  non_contract_notice?: string | null;
+  contract_type: string;
+  overall_risk_score: number;
+  risk_level: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "SAFE" | "NON_CONTRACT" | string;
+  executive_summary: string;
+  key_parties: string[];
+  governing_law?: string;
+  effective_dates_or_term?: string;
+  high_risk_count: number;
+  medium_risk_count: number;
+  low_risk_count: number;
+  identified_risks: ContractClauseRisk[];
+  missing_clauses: MissingClauseAlert[];
+  audit_timestamp: string;
+}
+
 export async function uploadDocument(file: File): Promise<{ success: boolean; message: string; document: DocumentMeta }> {
   const formData = new FormData();
   formData.append("file", file);
 
   const response = await api.post("/api/documents/upload", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return response.data;
+}
+
+export async function uploadBatchDocuments(files: File[]): Promise<{
+  success: boolean;
+  message: string;
+  total_uploaded: number;
+  successful_documents: DocumentMeta[];
+  failed_files: { filename: string; reason: string }[];
+}> {
+  const formData = new FormData();
+  files.forEach((file) => {
+    formData.append("files", file);
+  });
+
+  const response = await api.post("/api/documents/upload-batch", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
@@ -87,6 +149,21 @@ export async function summarizeDocument(docId: string): Promise<{ doc_id: string
   return response.data;
 }
 
+export async function auditContract(docId: string): Promise<ContractAuditReport> {
+  const response = await api.post(`/api/documents/${docId}/audit`);
+  return response.data;
+}
+
+export async function getContractAudit(docId: string): Promise<ContractAuditReport> {
+  const response = await api.get(`/api/documents/${docId}/audit`);
+  return response.data;
+}
+
+export async function exportAuditReport(docId: string): Promise<{ doc_id: string; filename: string; markdown_report: string }> {
+  const response = await api.get(`/api/documents/${docId}/export-audit`);
+  return response.data;
+}
+
 export async function fetchSessions(): Promise<ChatSession[]> {
   try {
     const response = await api.get("/api/sessions");
@@ -107,7 +184,7 @@ export async function fetchSessionDetail(sessionId: string): Promise<SessionDeta
   }
 }
 
-export async function createSession(title: string = "New Chat", docId?: string | null): Promise<ChatSession> {
+export async function createSession(title: string = "New Legal Consultation", docId?: string | null): Promise<ChatSession> {
   const response = await api.post("/api/sessions", {
     title,
     doc_id: docId || null,
@@ -127,3 +204,4 @@ export async function checkBackendHealth(): Promise<{ status: string; has_gemini
     return { status: "offline", has_gemini_key: false };
   }
 }
+

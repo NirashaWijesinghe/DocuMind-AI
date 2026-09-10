@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { FileText, Trash2, Layers, Search, Sparkles, X, AlertTriangle } from "lucide-react";
+import { FileText, Trash2, Layers, Search, Sparkles, X, AlertTriangle, Scale, ShieldAlert, ShieldCheck } from "lucide-react";
 import { DocumentMeta, deleteDocument } from "../lib/api";
 
 interface DocumentListProps {
@@ -10,6 +10,7 @@ interface DocumentListProps {
   onSelectDoc: (docId: string | null) => void;
   onDeleteSuccess: (docId: string) => void;
   onSummarizeDoc?: (docId: string) => void;
+  onAuditDoc?: (docId: string) => void;
 }
 
 export default function DocumentList({
@@ -18,6 +19,7 @@ export default function DocumentList({
   onSelectDoc,
   onDeleteSuccess,
   onSummarizeDoc,
+  onAuditDoc,
 }: DocumentListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [docToDelete, setDocToDelete] = useState<DocumentMeta | null>(null);
@@ -31,7 +33,7 @@ export default function DocumentList({
       onDeleteSuccess(docToDelete.doc_id);
       setDocToDelete(null);
     } catch (err) {
-      alert("Failed to delete document. Please check the backend.");
+      alert("Failed to delete agreement. Please check the backend.");
     } finally {
       setIsDeleting(false);
     }
@@ -45,17 +47,17 @@ export default function DocumentList({
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Knowledge Base ({documents.length})
+          Contract Repository ({documents.length})
         </h3>
         <button
           onClick={() => onSelectDoc(null)}
           className={`text-xs px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
             selectedDocId === null
-              ? "bg-sky-500/20 text-sky-300 border-sky-500/40"
+              ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/40"
               : "bg-slate-900/50 text-slate-400 border-slate-800 hover:text-slate-200"
           }`}
         >
-          Query All Docs
+          All Contracts
         </button>
       </div>
 
@@ -66,8 +68,8 @@ export default function DocumentList({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search documents by name..."
-            className="w-full bg-slate-950/60 border border-slate-800 rounded-xl pl-8 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-all"
+            placeholder="Search contracts by name..."
+            className="w-full bg-slate-950/60 border border-slate-800 rounded-xl pl-8 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all"
           />
           {searchQuery && (
             <button
@@ -82,48 +84,85 @@ export default function DocumentList({
 
       {documents.length === 0 ? (
         <div className="p-6 rounded-xl bg-slate-900/40 border border-slate-800/80 text-center text-xs text-slate-400">
-          No documents uploaded yet. Upload a PDF above to start chatting with AI.
+          No contracts uploaded yet. Upload a legal agreement PDF (NDA, MSA, Employment) above to begin.
         </div>
       ) : filteredDocs.length === 0 ? (
         <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800/80 text-center text-xs text-slate-400">
-          No documents match "{searchQuery}".
+          No agreements match "{searchQuery}".
         </div>
       ) : (
         <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
           {filteredDocs.map((doc) => {
             const isSelected = selectedDocId === doc.doc_id;
+            const isNonContract = doc.is_legal_contract === false || doc.risk_level === "NON_CONTRACT";
+            const hasRisk = !isNonContract && doc.risk_score !== undefined && doc.risk_score !== null;
+            const isHigh = hasRisk && doc.risk_score! >= 65;
+            const isMed = hasRisk && doc.risk_score! >= 35 && doc.risk_score! < 65;
+            
             return (
               <div
                 key={doc.doc_id}
                 onClick={() => onSelectDoc(isSelected ? null : doc.doc_id)}
                 className={`p-3 rounded-xl border transition-all cursor-pointer flex items-start justify-between gap-2 group ${
                   isSelected
-                    ? "bg-sky-950/40 border-sky-500/50 shadow-sm"
+                    ? "bg-indigo-950/40 border-indigo-500/50 shadow-sm"
                     : "bg-slate-900/60 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/90"
                 }`}
               >
                 <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                  <div className={`mt-0.5 p-1.5 rounded-lg shrink-0 ${isSelected ? "bg-sky-500/20 text-sky-400" : "bg-slate-800 text-slate-400"}`}>
-                    <FileText className="w-4 h-4" />
+                  <div className={`mt-0.5 p-1.5 rounded-lg shrink-0 ${
+                    isSelected ? "bg-indigo-500/20 text-indigo-400" : "bg-slate-800 text-slate-400"
+                  }`}>
+                    {isNonContract ? <FileText className="w-4 h-4 text-sky-400" /> : <Scale className="w-4 h-4" />}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className={`text-xs font-medium truncate ${isSelected ? "text-sky-200" : "text-slate-300"}`}>
+                    <p className={`text-xs font-medium truncate ${isSelected ? "text-indigo-200 font-semibold" : "text-slate-300"}`}>
                       {doc.filename}
                     </p>
-                    <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
+                    <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-400">
                       <span>{doc.total_pages} pages</span>
                       <span>•</span>
                       <span className="flex items-center gap-1">
                         <Layers className="w-3 h-3 text-slate-400" />
-                        {doc.total_chunks} blocks
+                        {doc.total_chunks} {isNonContract ? "sections" : "clauses"}
                       </span>
-                      <span>•</span>
-                      <span>{doc.file_size_kb} KB</span>
+                      {isNonContract ? (
+                        <>
+                          <span>•</span>
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-sky-500/15 text-sky-300 border border-sky-500/20">
+                            {doc.document_category || "General Doc"}
+                          </span>
+                        </>
+                      ) : (
+                        hasRisk && (
+                          <>
+                            <span>•</span>
+                            <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                              isHigh ? "bg-rose-500/15 text-rose-400" : isMed ? "bg-amber-500/15 text-amber-400" : "bg-emerald-500/15 text-emerald-400"
+                            }`}>
+                              Risk: {doc.risk_score}/100
+                            </span>
+                          </>
+                        )
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
+                  {onAuditDoc && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectDoc(doc.doc_id);
+                        onAuditDoc(doc.doc_id);
+                      }}
+                      className="p-1.5 rounded-lg text-amber-400 hover:text-amber-300 hover:bg-amber-950/60 border border-transparent hover:border-amber-500/30 transition-all cursor-pointer"
+                      title="Run Legal Risk Audit"
+                    >
+                      <ShieldAlert className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                   {onSummarizeDoc && (
                     <button
                       onClick={(e) => {
@@ -131,8 +170,8 @@ export default function DocumentList({
                         onSelectDoc(doc.doc_id);
                         onSummarizeDoc(doc.doc_id);
                       }}
-                      className="p-1.5 rounded-lg text-sky-400 hover:text-sky-300 hover:bg-sky-950/60 border border-transparent hover:border-sky-500/30 transition-all cursor-pointer"
-                      title="Generate Executive Summary"
+                      className="p-1.5 rounded-lg text-indigo-400 hover:text-indigo-300 hover:bg-indigo-950/60 border border-transparent hover:border-indigo-500/30 transition-all cursor-pointer"
+                      title="Generate Legal Summary"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
                     </button>
@@ -143,7 +182,7 @@ export default function DocumentList({
                       setDocToDelete(doc);
                     }}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
-                    title="Delete document"
+                    title="Delete contract"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
