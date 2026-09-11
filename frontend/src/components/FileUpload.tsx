@@ -113,8 +113,8 @@ export default function FileUpload({ onUploadSuccess, onBatchUploadSuccess }: Fi
         onClick={() => fileInputRef.current?.click()}
         className={`relative border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all duration-300 ${
           isDragging
-            ? "border-indigo-400 bg-indigo-950/30 scale-[1.01]"
-            : "border-slate-700/80 bg-slate-900/40 hover:border-indigo-500/50 hover:bg-slate-900/60"
+            ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 scale-[1.01]"
+            : "border-slate-300 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-900/40 hover:border-indigo-400 dark:hover:border-indigo-500/50 hover:bg-indigo-50/30 dark:hover:bg-slate-900/60"
         }`}
       >
         <input
@@ -127,31 +127,31 @@ export default function FileUpload({ onUploadSuccess, onBatchUploadSuccess }: Fi
         />
 
         <div className="flex flex-col items-center justify-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner">
+          <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-inner">
             {isUploading ? (
-              <Loader2 className="w-6 h-6 animate-spin text-indigo-400" />
+              <Loader2 className="w-6 h-6 animate-spin text-indigo-600 dark:text-indigo-400" />
             ) : (
               <UploadCloud className="w-6 h-6" />
             )}
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-slate-200 flex items-center justify-center gap-1.5">
+            <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-center gap-1.5">
               {isUploading ? (
                 "Processing & Indexing Contract Clauses..."
               ) : (
                 <>
-                  <Files className="w-4 h-4 text-indigo-400" />
+                  <Files className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                   <span>Drop Legal Agreements (.pdf) here</span>
                 </>
               )}
             </h4>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               Supports NDAs, MSAs, Employment, Vendor & SaaS Contracts (Max 20MB)
             </p>
           </div>
 
-          <div className="inline-flex items-center gap-1.5 text-[11px] text-indigo-300 font-medium px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
+          <div className="inline-flex items-center gap-1.5 text-[11px] text-indigo-700 dark:text-indigo-300 font-medium px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20">
             <FileUp className="w-3 h-3" />
             <span>Automatic Clause Extraction & ChromaDB Vectorization</span>
           </div>
@@ -162,18 +162,18 @@ export default function FileUpload({ onUploadSuccess, onBatchUploadSuccess }: Fi
         <div
           className={`mt-3 p-3 rounded-xl text-xs flex items-center gap-2 animate-fadeIn ${
             uploadStatus.type === "success"
-              ? "bg-emerald-950/40 border border-emerald-800/50 text-emerald-300"
+              ? "bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 text-emerald-800 dark:text-emerald-300"
               : uploadStatus.type === "warning"
-              ? "bg-amber-950/40 border border-amber-800/50 text-amber-300"
-              : "bg-rose-950/40 border border-rose-800/50 text-rose-300"
+              ? "bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 text-amber-800 dark:text-amber-300"
+              : "bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 text-rose-800 dark:text-rose-300"
           }`}
         >
           {uploadStatus.type === "success" ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
           ) : uploadStatus.type === "warning" ? (
-            <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
           ) : (
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
           )}
           <span className="truncate">{uploadStatus.message}</span>
         </div>
