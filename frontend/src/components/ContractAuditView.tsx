@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   ShieldAlert, 
   ShieldCheck, 
@@ -23,7 +23,11 @@ import {
   Globe,
   Users,
   Search,
-  X
+  X,
+  FileDown,
+  Printer,
+  ClipboardCopy,
+  CheckCheck
 } from "lucide-react";
 import { 
   ContractAuditReport, 
@@ -58,6 +62,9 @@ export default function ContractAuditView({
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [copiedClauseId, setCopiedClauseId] = useState<string | null>(null);
   const [expandedClauses, setExpandedClauses] = useState<Record<number, boolean>>({});
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [allCopied, setAllCopied] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
 
   const loadAudit = async (forceRefresh = false) => {
     if (!selectedDoc) return;
@@ -89,6 +96,17 @@ export default function ContractAuditView({
     }
   }, [selectedDoc?.doc_id]);
 
+  // Close export menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const toggleClauseExpand = (index: number) => {
     setExpandedClauses((prev) => ({
       ...prev,
@@ -102,8 +120,9 @@ export default function ContractAuditView({
     setTimeout(() => setCopiedClauseId(null), 2000);
   };
 
-  const handleExportReport = async () => {
+  const handleExportMarkdown = async () => {
     if (!selectedDoc) return;
+    setShowExportMenu(false);
     try {
       const res = await exportAuditReport(selectedDoc.doc_id);
       const blob = new Blob([res.markdown_report], { type: "text/markdown;charset=utf-8;" });
@@ -115,7 +134,238 @@ export default function ContractAuditView({
       link.click();
       document.body.removeChild(link);
     } catch (err) {
-      console.error("Failed to export report", err);
+      console.error("Failed to export markdown report", err);
+    }
+  };
+
+  const handleExportPDF = () => {
+    if (!selectedDoc || !auditReport) return;
+    setShowExportMenu(false);
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const score = auditReport.overall_risk_score ?? 50;
+    const isHigh = score >= 65;
+    const isMed = score >= 35 && score < 65;
+    const scoreColor = isHigh ? "#b91c1c" : isMed ? "#b45309" : "#047857";
+    const scoreBg = isHigh ? "#fee2e2" : isMed ? "#fef3c7" : "#d1fae5";
+
+    let html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>LexiGuard AI Due Diligence Audit Report - ${selectedDoc.filename}</title>
+        <style>
+          @page { size: A4; margin: 15mm; }
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; line-height: 1.5; padding: 20px; max-width: 850px; margin: 0 auto; }
+          .header { border-bottom: 3px solid #4f46e5; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
+          .brand { font-size: 22px; font-weight: 800; color: #1e1b4b; }
+          .subbrand { font-size: 11px; color: #64748b; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+          .score-pill { background: ${scoreBg}; color: ${scoreColor}; border: 1px solid ${scoreColor}; border-radius: 8px; padding: 8px 16px; text-align: right; }
+          .score-num { font-size: 22px; font-weight: 900; }
+          .meta-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+          .meta-item strong { color: #475569; }
+          .summary-card { background: #f1f5f9; border-left: 4px solid #4f46e5; border-radius: 0 8px 8px 0; padding: 14px 18px; margin-bottom: 24px; font-size: 13px; }
+          h2 { font-size: 15px; font-weight: 700; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 24px; margin-bottom: 14px; }
+          .risk-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 14px; page-break-inside: avoid; }
+          .risk-high { border-left: 4px solid #ef4444; background: #fffdfd; }
+          .risk-med { border-left: 4px solid #f59e0b; background: #fffefb; }
+          .risk-badge { font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-bottom: 6px; }
+          .badge-high { background: #fee2e2; color: #b91c1c; }
+          .badge-med { background: #fef3c7; color: #b45309; }
+          .excerpt { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; font-size: 12px; color: #334155; margin: 8px 0; font-style: italic; }
+          .counter-box { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; padding: 10px; margin-top: 8px; font-size: 12px; color: #064e3b; font-family: monospace; }
+          .missing-card { background: #faf5ff; border: 1px solid #e9d5ff; border-left: 4px solid #a855f7; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+          .footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 10px; color: #94a3b8; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="brand">⚖️ LexiGuard AI</div>
+            <div class="subbrand">Enterprise Legal Contract Intelligence & Risk Due Diligence Audit</div>
+            <div style="font-size: 13px; font-weight: 600; color: #334155; margin-top: 6px;">Target Agreement: ${selectedDoc.filename}</div>
+          </div>
+          <div class="score-pill">
+            <div style="font-size: 10px; font-weight: 700; text-transform: uppercase;">Risk Score</div>
+            <div class="score-num">${score} / 100</div>
+            <div style="font-size: 11px; font-weight: 800;">${auditReport.risk_level || "EVALUATED"}</div>
+          </div>
+        </div>
+
+        <div class="meta-box">
+          <div class="meta-item"><strong>Document Category:</strong> ${auditReport.document_category || auditReport.contract_type || "Commercial Contract"}</div>
+          <div class="meta-item"><strong>Audit Date:</strong> ${auditReport.audit_timestamp || new Date().toLocaleString()}</div>
+          <div class="meta-item"><strong>Governing Law:</strong> ${auditReport.governing_law || "Not Specified / Standard"}</div>
+          <div class="meta-item"><strong>Effective Dates / Term:</strong> ${auditReport.effective_dates_or_term || "Not Specified"}</div>
+        </div>
+
+        <h2>📋 Executive Due Diligence Summary</h2>
+        <div class="summary-card">
+          ${auditReport.executive_summary || "No executive summary available."}
+        </div>
+
+        <h2>🚨 Identified Clause Hazards & AI Counter-Clauses (${auditReport.identified_risks?.length || 0})</h2>
+    `;
+
+    (auditReport.identified_risks || []).forEach((risk, i) => {
+      const isHighRisk = risk.severity === "HIGH" || risk.severity === "CRITICAL";
+      html += `
+        <div class="risk-card ${isHighRisk ? "risk-high" : "risk-med"}">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <span class="risk-badge ${isHighRisk ? "badge-high" : "badge-med"}">${risk.severity} RISK</span>
+              <strong style="font-size: 13px; color: #0f172a; margin-left: 6px;">${risk.clause_title}</strong>
+            </div>
+            <span style="font-size: 11px; color: #64748b;">Page ${risk.page_number} • ${risk.category}</span>
+          </div>
+
+          ${risk.original_text ? `<div class="excerpt"><strong>Original Excerpt:</strong> "${risk.original_text}"</div>` : ""}
+          <div style="font-size: 12px; color: #334155; margin-top: 6px;"><strong>Legal Risk Analysis:</strong> ${risk.risk_explanation}</div>
+          
+          ${risk.recommended_revision ? `
+            <div class="counter-box">
+              <strong style="text-transform: uppercase; font-size: 10px; display: block; margin-bottom: 4px; color: #047857;">AI Recommended Counter-Clause (Redline):</strong>
+              ${risk.recommended_revision}
+            </div>
+          ` : ""}
+        </div>
+      `;
+    });
+
+    if (auditReport.missing_clauses && auditReport.missing_clauses.length > 0) {
+      html += `<h2>⚠️ Missing Protective Terms (${auditReport.missing_clauses.length})</h2>`;
+      auditReport.missing_clauses.forEach((missing) => {
+        html += `
+          <div class="missing-card">
+            <strong style="font-size: 13px; color: #581c87;">${missing.clause_name}</strong>
+            <span style="font-size: 11px; color: #7e22ce; margin-left: 8px;">(Priority: ${missing.importance})</span>
+            <div style="font-size: 12px; color: #4b5563; margin-top: 4px;"><strong>Hazard of Omission:</strong> ${missing.reason}</div>
+            ${missing.suggested_language ? `
+              <div class="counter-box" style="margin-top: 6px;">
+                <strong style="text-transform: uppercase; font-size: 10px; display: block; margin-bottom: 4px;">Suggested Protective Clause:</strong>
+                ${missing.suggested_language}
+              </div>
+            ` : ""}
+          </div>
+        `;
+      });
+    }
+
+    html += `
+        <div class="footer">
+          Generated automatically by LexiGuard AI • Enterprise Legal Contract Intelligence & Risk Auditor • Confidential Legal Tech Work Product
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
+
+  const handleExportWord = () => {
+    if (!selectedDoc || !auditReport) return;
+    setShowExportMenu(false);
+
+    const score = auditReport.overall_risk_score ?? 50;
+
+    let docHtml = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <meta charset='utf-8'>
+        <title>LexiGuard Due Diligence Report - ${selectedDoc.filename}</title>
+        <style>
+          body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #1f2937; line-height: 1.5; }
+          h1 { font-size: 18pt; color: #1e3a8a; border-bottom: 2pt solid #3b82f6; padding-bottom: 4pt; }
+          h2 { font-size: 13pt; color: #1e293b; border-bottom: 1pt solid #cbd5e1; padding-bottom: 3pt; margin-top: 16pt; }
+          .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 14pt; }
+          .meta-table td { border: 1pt solid #e2e8f0; padding: 6pt 10pt; font-size: 10pt; }
+          .box { background-color: #f8fafc; border: 1pt solid #cbd5e1; padding: 10pt; margin-bottom: 12pt; }
+          .risk-item { border: 1pt solid #e2e8f0; padding: 10pt; margin-bottom: 10pt; }
+          .counter { background-color: #ecfdf5; border: 1pt solid #a7f3d0; padding: 8pt; color: #064e3b; font-family: Consolas, monospace; font-size: 10pt; margin-top: 6pt; }
+        </style>
+      </head>
+      <body>
+        <h1>⚖️ LexiGuard AI — Legal Due Diligence Audit Report</h1>
+        <p><strong>Agreement:</strong> ${selectedDoc.filename} | <strong>Risk Score:</strong> ${score}/100 (${auditReport.risk_level}) | <strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+
+        <table class="meta-table">
+          <tr>
+            <td><strong>Contract Category:</strong> ${auditReport.document_category || "Commercial Contract"}</td>
+            <td><strong>Governing Law:</strong> ${auditReport.governing_law || "Not Specified"}</td>
+          </tr>
+          <tr>
+            <td><strong>Effective Dates / Term:</strong> ${auditReport.effective_dates_or_term || "Not Specified"}</td>
+            <td><strong>Key Parties:</strong> ${(auditReport.key_parties || []).join(", ") || "Identified in Document"}</td>
+          </tr>
+        </table>
+
+        <h2>📋 Executive Due Diligence Summary</h2>
+        <div class="box">
+          ${auditReport.executive_summary || "No executive summary available."}
+        </div>
+
+        <h2>🚨 Identified Clause Hazards & Recommended Counter-Clauses</h2>
+    `;
+
+    (auditReport.identified_risks || []).forEach((r) => {
+      docHtml += `
+        <div class="risk-item">
+          <p><strong>[${r.severity} RISK] ${r.clause_title}</strong> (Page ${r.page_number} • ${r.category})</p>
+          ${r.original_text ? `<p style="font-style: italic; color: #475569;">"${r.original_text}"</p>` : ""}
+          <p><strong>Legal Risk:</strong> ${r.risk_explanation}</p>
+          ${r.recommended_revision ? `<div class="counter"><strong>Recommended Redline Clause:</strong><br>${r.recommended_revision}</div>` : ""}
+        </div>
+      `;
+    });
+
+    if (auditReport.missing_clauses && auditReport.missing_clauses.length > 0) {
+      docHtml += `<h2>⚠️ Missing Protective Clauses</h2>`;
+      auditReport.missing_clauses.forEach((m) => {
+        docHtml += `
+          <div class="risk-item">
+            <p><strong>${m.clause_name}</strong> (Importance: ${m.importance})</p>
+            <p><strong>Hazard of Omission:</strong> ${m.reason}</p>
+            ${m.suggested_language ? `<div class="counter"><strong>Suggested Clause to Insert:</strong><br>${m.suggested_language}</div>` : ""}
+          </div>
+        `;
+      });
+    }
+
+    docHtml += `
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob(["\ufeff", docHtml], { type: "application/msword" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${selectedDoc.filename.replace(".pdf", "")}_Due_Diligence_Report.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleCopyAudit = async () => {
+    if (!selectedDoc) return;
+    try {
+      const res = await exportAuditReport(selectedDoc.doc_id);
+      navigator.clipboard.writeText(res.markdown_report);
+      setAllCopied(true);
+      setTimeout(() => {
+        setAllCopied(false);
+        setShowExportMenu(false);
+      }, 1500);
+    } catch (err) {
+      console.error("Failed to copy audit report", err);
     }
   };
 
@@ -243,13 +493,80 @@ export default function ContractAuditView({
 
         {/* Action Controls */}
         <div className="flex items-center gap-2.5 shrink-0">
-          <button
-            onClick={handleExportReport}
-            className="flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl text-xs font-semibold bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-500/20 border border-sky-200 dark:border-sky-500/30 transition-all cursor-pointer shadow-xs"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export Report</span>
-          </button>
+          {/* Multi-Format Export Dropdown */}
+          <div className="relative z-50" ref={exportMenuRef}>
+            <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className={`flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-xs ${
+                showExportMenu
+                  ? "bg-sky-50 dark:bg-sky-500/20 border-sky-300 dark:border-sky-500/50 text-sky-700 dark:text-sky-300"
+                  : "bg-gradient-to-r from-indigo-50 to-sky-50 dark:from-sky-950/40 dark:to-indigo-950/40 text-indigo-700 dark:text-sky-300 hover:from-indigo-100 hover:to-sky-100 border-indigo-200 dark:border-sky-500/30"
+              }`}
+              title="Export Full Executive Due Diligence Audit Report"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export Audit</span>
+              <ChevronDown className="w-3 h-3 text-slate-400" />
+            </button>
+
+            {showExportMenu && (
+              <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl bg-white dark:bg-[#090d24] border border-slate-200/90 dark:border-slate-700/80 shadow-2xl p-1.5 z-50 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-2.5 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 mb-1">
+                  Export Executive Due Diligence
+                </div>
+
+                <button
+                  onClick={handleExportPDF}
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-500/15 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors text-left cursor-pointer group"
+                >
+                  <Printer className="w-4 h-4 text-indigo-500 dark:text-indigo-400 shrink-0" />
+                  <div>
+                    <div className="font-semibold leading-tight">Print / Save as PDF</div>
+                    <div className="text-[10px] text-slate-400">Official Branded Legal Report</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={handleExportWord}
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-sky-500/15 hover:text-sky-700 dark:hover:text-sky-300 transition-colors text-left cursor-pointer group"
+                >
+                  <FileText className="w-4 h-4 text-sky-500 dark:text-sky-400 shrink-0" />
+                  <div>
+                    <div className="font-semibold leading-tight">Microsoft Word (.doc)</div>
+                    <div className="text-[10px] text-slate-400">Formatted Document for Attorneys</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={handleExportMarkdown}
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-500/15 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors text-left cursor-pointer group"
+                >
+                  <FileDown className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
+                  <div>
+                    <div className="font-semibold leading-tight">Markdown (.md)</div>
+                    <div className="text-[10px] text-slate-400">For Notion, Obsidian & Tech Docs</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={handleCopyAudit}
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-500/15 hover:text-purple-700 dark:hover:text-purple-300 transition-colors text-left cursor-pointer group"
+                >
+                  {allCopied ? (
+                    <CheckCheck className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
+                  ) : (
+                    <ClipboardCopy className="w-4 h-4 text-purple-500 dark:text-purple-400 shrink-0" />
+                  )}
+                  <div>
+                    <div className="font-semibold leading-tight">
+                      {allCopied ? "Copied to Clipboard!" : "Copy Full Report"}
+                    </div>
+                    <div className="text-[10px] text-slate-400">Copy text with all redlines</div>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
 
           <button
             onClick={() => loadAudit(true)}
