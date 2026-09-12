@@ -8,7 +8,7 @@ class VectorService:
         self.client = chromadb.PersistentClient(path=str(settings.CHROMA_PATH))
         # Get or create the documents collection
         self.collection = self.client.get_or_create_collection(
-            name="documind_collection",
+            name="lexiguard_collection",
             metadata={"hnsw:space": "cosine"}
         )
 
