@@ -43,6 +43,8 @@ interface ChatInterfaceProps {
   onUploadDocSuccess?: (doc: DocumentMeta) => void;
   triggerSummaryDocId?: string | null;
   onResetTriggerSummary?: () => void;
+  pendingPrompt?: string | null;
+  onClearPendingPrompt?: () => void;
   activeSessionId: string | null;
   sessions: ChatSession[];
   onRefreshSessions: () => void;
@@ -59,6 +61,8 @@ export default function ChatInterface({
   onUploadDocSuccess,
   triggerSummaryDocId,
   onResetTriggerSummary,
+  pendingPrompt,
+  onClearPendingPrompt,
   activeSessionId,
   sessions,
   onRefreshSessions,
@@ -75,14 +79,19 @@ export default function ChatInterface({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [allCopied, setAllCopied] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const chatFileInputRef = useRef<HTMLInputElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
 
   const selectedDoc = documents.find((d) => d.doc_id === selectedDocId);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messages.length > 0 && messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: "smooth"
+      });
+    }
   };
 
   useEffect(() => {
@@ -118,6 +127,14 @@ export default function ChatInterface({
       if (onResetTriggerSummary) onResetTriggerSummary();
     }
   }, [triggerSummaryDocId]);
+
+  // Handle external trigger for custom prompt (e.g. Draft negotiation strategy)
+  useEffect(() => {
+    if (pendingPrompt) {
+      handleSend(pendingPrompt);
+      if (onClearPendingPrompt) onClearPendingPrompt();
+    }
+  }, [pendingPrompt]);
 
   // Close export menu on outside click
   useEffect(() => {
@@ -411,9 +428,9 @@ export default function ChatInterface({
   const currentActiveSession = sessions.find((s) => s.id === activeSessionId);
 
   return (
-    <div className="relative flex flex-col h-[740px] bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800/90 overflow-hidden shadow-sm dark:shadow-2xl backdrop-blur-xl">
+    <div className="relative flex flex-col h-[740px] bg-white/95 dark:bg-slate-900/50 rounded-3xl border border-slate-200/90 dark:border-slate-800/90 overflow-hidden shadow-[0_12px_36px_-10px_rgba(15,23,42,0.08)] dark:shadow-2xl backdrop-blur-xl">
       {/* Chat Header */}
-      <div className="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-900/80 flex items-center justify-between gap-3">
+      <div className="relative z-30 px-5 py-3.5 border-b border-slate-200/90 dark:border-slate-800/80 bg-slate-50/90 dark:bg-slate-900/80 flex items-center justify-between gap-3 backdrop-blur-md">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-sky-500 to-emerald-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 shrink-0">
             <Sparkles className="w-5 h-5" />
@@ -440,7 +457,7 @@ export default function ChatInterface({
         {/* Clean Header Actions (Export Dropdown & Clear only) */}
         <div className="flex items-center gap-2 shrink-0">
           {/* Export Dropdown - Always visible */}
-          <div className="relative" ref={exportMenuRef}>
+          <div className="relative z-50" ref={exportMenuRef}>
             <button
               onClick={() => messages.length > 0 && setShowExportMenu(!showExportMenu)}
               disabled={messages.length === 0}
@@ -523,11 +540,11 @@ export default function ChatInterface({
       </div>
 
       {/* Messages Thread */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div ref={messagesContainerRef} className="relative z-10 flex-1 overflow-y-auto p-6 space-y-6">
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-4">
-            <div className="w-16 h-16 rounded-2xl bg-sky-50 dark:bg-sky-500/10 border border-sky-200 dark:border-sky-500/20 flex items-center justify-center text-sky-600 dark:text-sky-400 shadow-md">
-              <Bot className="w-8 h-8" />
+          <div className="h-full flex flex-col items-center justify-start pt-6 sm:pt-8 text-center max-w-lg mx-auto space-y-4 animate-in fade-in duration-200">
+            <div className="w-14 h-14 rounded-2xl bg-sky-50 dark:bg-sky-500/10 border border-sky-200 dark:border-sky-500/20 flex items-center justify-center text-sky-600 dark:text-sky-400 shadow-md">
+              <Bot className="w-7 h-7" />
             </div>
             <div>
               <h4 className="text-base font-semibold text-slate-800 dark:text-slate-200">Ask LexiGuard Legal Copilot</h4>
@@ -574,10 +591,10 @@ export default function ChatInterface({
               )}
 
               <div
-                className={`max-w-[85%] min-w-0 rounded-2xl p-4 shadow-xs text-sm group relative break-words overflow-hidden ${
+                className={`max-w-[85%] min-w-0 rounded-2xl p-4 sm:p-5 text-sm group relative break-words overflow-hidden ${
                   msg.role === "user"
-                    ? "bg-gradient-to-r from-sky-600 to-indigo-600 text-white rounded-tr-none"
-                    : "bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none"
+                    ? "bg-gradient-to-r from-indigo-600 via-indigo-700 to-sky-600 text-white rounded-tr-none shadow-md shadow-indigo-500/20"
+                    : "bg-white dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none shadow-[0_4px_20px_-4px_rgba(15,23,42,0.04)]"
                 }`}
               >
                 {msg.role === "assistant" ? (
@@ -585,45 +602,45 @@ export default function ChatInterface({
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed text-slate-800 dark:text-slate-200 break-words">{children}</p>,
-                        ul: ({ children }) => <ul className="list-disc ml-5 space-y-1 my-2 text-slate-700 dark:text-slate-300 break-words">{children}</ul>,
-                        ol: ({ children }) => <ol className="list-decimal ml-5 space-y-1 my-2 text-slate-700 dark:text-slate-300 break-words">{children}</ol>,
-                        li: ({ children }) => <li className="text-slate-700 dark:text-slate-300 break-words">{children}</li>,
-                        h1: ({ children }) => <h1 className="text-base font-bold text-slate-900 dark:text-sky-200 mt-3 mb-1 break-words">{children}</h1>,
-                        h2: ({ children }) => <h2 className="text-sm font-bold text-slate-900 dark:text-sky-200 mt-2.5 mb-1 break-words">{children}</h2>,
-                        h3: ({ children }) => <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-sky-300 mt-2 mb-1 break-words">{children}</h3>,
-                        strong: ({ children }) => <strong className="font-semibold text-slate-900 dark:text-sky-200 break-words">{children}</strong>,
+                        p: ({ children }) => <p className="mb-2.5 last:mb-0 leading-relaxed text-slate-800 dark:text-slate-200 break-words">{children}</p>,
+                        ul: ({ children }) => <ul className="list-disc ml-5 space-y-1.5 my-2.5 text-slate-700 dark:text-slate-300 break-words">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal ml-5 space-y-1.5 my-2.5 text-slate-700 dark:text-slate-300 break-words">{children}</ol>,
+                        li: ({ children }) => <li className="text-slate-700 dark:text-slate-300 break-words pl-0.5">{children}</li>,
+                        h1: ({ children }) => <h1 className="text-base font-bold text-slate-900 dark:text-sky-200 mt-3.5 mb-1.5 pb-1 border-b border-slate-200/80 dark:border-slate-800 break-words">{children}</h1>,
+                        h2: ({ children }) => <h2 className="text-sm font-bold text-indigo-950 dark:text-sky-200 mt-3.5 mb-1.5 break-words">{children}</h2>,
+                        h3: ({ children }) => <h3 className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 dark:text-sky-300 mt-3 mb-1.5 bg-indigo-50/90 dark:bg-indigo-500/10 px-2.5 py-0.5 rounded-md inline-block border border-indigo-200/60 dark:border-indigo-500/20 break-words">{children}</h3>,
+                        strong: ({ children }) => <strong className="font-bold text-slate-900 dark:text-slate-100 break-words">{children}</strong>,
                         blockquote: ({ children }) => (
-                          <blockquote className="border-l-3 border-sky-500 pl-3 py-1.5 my-2 bg-slate-100 dark:bg-slate-800/60 rounded-r-lg text-slate-700 dark:text-slate-300 text-xs italic break-words">
+                          <blockquote className="border-l-4 border-indigo-500 pl-3.5 py-2 my-2.5 bg-indigo-50/50 dark:bg-slate-800/60 rounded-r-xl text-slate-800 dark:text-slate-300 text-xs italic border border-indigo-100/60 dark:border-transparent break-words">
                             {children}
                           </blockquote>
                         ),
                         pre: ({ children }) => (
-                          <pre className="overflow-x-auto max-w-full whitespace-pre-wrap break-words rounded-xl p-3.5 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono my-2.5 text-slate-800 dark:text-sky-300">
+                          <pre className="overflow-x-auto max-w-full whitespace-pre-wrap break-words rounded-xl p-4 bg-slate-900 text-slate-100 dark:bg-slate-950 dark:text-sky-200 border border-slate-800 text-xs font-mono my-3 shadow-md">
                             {children}
                           </pre>
                         ),
                         code: ({ node, inline, className, children, ...props }: any) => {
                           if (inline) {
                             return (
-                              <code className="bg-slate-200 dark:bg-slate-950 px-1.5 py-0.5 rounded text-indigo-800 dark:text-sky-300 font-mono text-[11px] border border-slate-300 dark:border-slate-800 break-words">
+                              <code className="bg-indigo-50 text-indigo-700 dark:bg-slate-950 dark:text-sky-300 px-1.5 py-0.5 rounded-md font-mono text-[11px] border border-indigo-200/60 dark:border-slate-800 font-semibold break-words">
                                 {children}
                               </code>
                             );
                           }
                           return (
-                            <code className="whitespace-pre-wrap break-words font-mono text-xs text-slate-800 dark:text-sky-300 block">
+                            <code className="whitespace-pre-wrap break-words font-mono text-xs text-slate-100 dark:text-sky-200 block">
                               {children}
                             </code>
                           );
                         },
                         table: ({ children }) => (
-                          <div className="overflow-x-auto my-2 max-w-full">
-                            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-xs text-left border border-slate-200 dark:border-slate-800 rounded-lg">{children}</table>
+                          <div className="overflow-x-auto my-3 max-w-full">
+                            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-xs text-left border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs">{children}</table>
                           </div>
                         ),
-                        th: ({ children }) => <th className="px-2 py-1 bg-slate-100 dark:bg-slate-800/80 font-semibold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 break-words">{children}</th>,
-                        td: ({ children }) => <td className="px-2 py-1 border-b border-slate-200 dark:border-slate-800/60 text-slate-700 dark:text-slate-300 break-words">{children}</td>,
+                        th: ({ children }) => <th className="px-3 py-2 bg-slate-100 dark:bg-slate-800/80 font-semibold text-slate-900 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 break-words">{children}</th>,
+                        td: ({ children }) => <td className="px-3 py-2 border-b border-slate-100 dark:border-slate-800/60 text-slate-700 dark:text-slate-300 break-words">{children}</td>,
                       }}
                     >
                       {msg.content}
@@ -688,7 +705,6 @@ export default function ChatInterface({
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Input Field & Prompt Chips */}
