@@ -17,7 +17,8 @@ import {
   FolderKanban,
   Activity,
   Sun,
-  Moon
+  Moon,
+  Upload
 } from "lucide-react";
 import OverviewDashboard from "../components/OverviewDashboard";
 import ContractAuditView from "../components/ContractAuditView";
@@ -191,8 +192,18 @@ export default function DashboardPage() {
             </button>
           </nav>
 
-          {/* Right Controls: Health Status + Theme Toggle */}
+          {/* Right Controls: Quick Upload + Health Status + Theme Toggle */}
           <div className="flex items-center gap-2.5">
+            {/* Quick Upload Button */}
+            <button
+              onClick={() => setActiveTab("overview")}
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-bold shadow-md shadow-indigo-500/25 flex items-center gap-1.5 transition-all cursor-pointer hover:scale-105 active:scale-95"
+              title="Upload New Agreement or Document"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Upload PDF</span>
+            </button>
+
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}

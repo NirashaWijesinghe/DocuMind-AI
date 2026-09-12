@@ -574,44 +574,63 @@ export default function ChatInterface({
               )}
 
               <div
-                className={`max-w-[85%] rounded-2xl p-4 shadow-xs text-sm group relative ${
+                className={`max-w-[85%] min-w-0 rounded-2xl p-4 shadow-xs text-sm group relative break-words overflow-hidden ${
                   msg.role === "user"
                     ? "bg-gradient-to-r from-sky-600 to-indigo-600 text-white rounded-tr-none"
                     : "bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none"
                 }`}
               >
                 {msg.role === "assistant" ? (
-                  <div className="prose dark:prose-invert max-w-none text-xs sm:text-sm leading-relaxed space-y-2">
+                  <div className="prose dark:prose-invert max-w-none text-xs sm:text-sm leading-relaxed space-y-2 break-words overflow-hidden min-w-0">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed text-slate-800 dark:text-slate-200">{children}</p>,
-                        ul: ({ children }) => <ul className="list-disc ml-5 space-y-1 my-2 text-slate-700 dark:text-slate-300">{children}</ul>,
-                        ol: ({ children }) => <ol className="list-decimal ml-5 space-y-1 my-2 text-slate-700 dark:text-slate-300">{children}</ol>,
-                        li: ({ children }) => <li className="text-slate-700 dark:text-slate-300">{children}</li>,
-                        h1: ({ children }) => <h1 className="text-base font-bold text-slate-900 dark:text-sky-200 mt-3 mb-1">{children}</h1>,
-                        h2: ({ children }) => <h2 className="text-sm font-bold text-slate-900 dark:text-sky-200 mt-2.5 mb-1">{children}</h2>,
-                        h3: ({ children }) => <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-sky-300 mt-2 mb-1">{children}</h3>,
-                        strong: ({ children }) => <strong className="font-semibold text-slate-900 dark:text-sky-200">{children}</strong>,
-                        code: ({ children }) => (
-                          <code className="bg-slate-200 dark:bg-slate-950 px-1.5 py-0.5 rounded text-indigo-800 dark:text-sky-300 font-mono text-[11px] border border-slate-300 dark:border-slate-800">
+                        p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed text-slate-800 dark:text-slate-200 break-words">{children}</p>,
+                        ul: ({ children }) => <ul className="list-disc ml-5 space-y-1 my-2 text-slate-700 dark:text-slate-300 break-words">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal ml-5 space-y-1 my-2 text-slate-700 dark:text-slate-300 break-words">{children}</ol>,
+                        li: ({ children }) => <li className="text-slate-700 dark:text-slate-300 break-words">{children}</li>,
+                        h1: ({ children }) => <h1 className="text-base font-bold text-slate-900 dark:text-sky-200 mt-3 mb-1 break-words">{children}</h1>,
+                        h2: ({ children }) => <h2 className="text-sm font-bold text-slate-900 dark:text-sky-200 mt-2.5 mb-1 break-words">{children}</h2>,
+                        h3: ({ children }) => <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-sky-300 mt-2 mb-1 break-words">{children}</h3>,
+                        strong: ({ children }) => <strong className="font-semibold text-slate-900 dark:text-sky-200 break-words">{children}</strong>,
+                        blockquote: ({ children }) => (
+                          <blockquote className="border-l-3 border-sky-500 pl-3 py-1.5 my-2 bg-slate-100 dark:bg-slate-800/60 rounded-r-lg text-slate-700 dark:text-slate-300 text-xs italic break-words">
                             {children}
-                          </code>
+                          </blockquote>
                         ),
+                        pre: ({ children }) => (
+                          <pre className="overflow-x-auto max-w-full whitespace-pre-wrap break-words rounded-xl p-3.5 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono my-2.5 text-slate-800 dark:text-sky-300">
+                            {children}
+                          </pre>
+                        ),
+                        code: ({ node, inline, className, children, ...props }: any) => {
+                          if (inline) {
+                            return (
+                              <code className="bg-slate-200 dark:bg-slate-950 px-1.5 py-0.5 rounded text-indigo-800 dark:text-sky-300 font-mono text-[11px] border border-slate-300 dark:border-slate-800 break-words">
+                                {children}
+                              </code>
+                            );
+                          }
+                          return (
+                            <code className="whitespace-pre-wrap break-words font-mono text-xs text-slate-800 dark:text-sky-300 block">
+                              {children}
+                            </code>
+                          );
+                        },
                         table: ({ children }) => (
-                          <div className="overflow-x-auto my-2">
+                          <div className="overflow-x-auto my-2 max-w-full">
                             <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-xs text-left border border-slate-200 dark:border-slate-800 rounded-lg">{children}</table>
                           </div>
                         ),
-                        th: ({ children }) => <th className="px-2 py-1 bg-slate-100 dark:bg-slate-800/80 font-semibold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700">{children}</th>,
-                        td: ({ children }) => <td className="px-2 py-1 border-b border-slate-200 dark:border-slate-800/60 text-slate-700 dark:text-slate-300">{children}</td>,
+                        th: ({ children }) => <th className="px-2 py-1 bg-slate-100 dark:bg-slate-800/80 font-semibold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 break-words">{children}</th>,
+                        td: ({ children }) => <td className="px-2 py-1 border-b border-slate-200 dark:border-slate-800/60 text-slate-700 dark:text-slate-300 break-words">{children}</td>,
                       }}
                     >
                       {msg.content}
                     </ReactMarkdown>
                   </div>
                 ) : (
-                  <div className="whitespace-pre-wrap leading-relaxed">{msg.content}</div>
+                  <div className="whitespace-pre-wrap break-words leading-relaxed">{msg.content}</div>
                 )}
 
                 {msg.sources && msg.sources.length > 0 && (

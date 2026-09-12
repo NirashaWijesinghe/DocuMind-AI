@@ -21,7 +21,9 @@ import {
   BookOpen,
   Calendar,
   Globe,
-  Users
+  Users,
+  Search,
+  X
 } from "lucide-react";
 import { 
   ContractAuditReport, 
@@ -51,6 +53,7 @@ export default function ContractAuditView({
   const [auditReport, setAuditReport] = useState<ContractAuditReport | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [filterSeverity, setFilterSeverity] = useState<"ALL" | "HIGH" | "MEDIUM" | "MISSING">("ALL");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [copiedClauseId, setCopiedClauseId] = useState<string | null>(null);
   const [expandedClauses, setExpandedClauses] = useState<Record<number, boolean>>({});
 
@@ -154,8 +157,31 @@ export default function ContractAuditView({
     : "text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10";
 
   const filteredRisks = (auditReport?.identified_risks || []).filter((r) => {
-    if (filterSeverity === "HIGH") return r.severity === "HIGH" || r.severity === "CRITICAL";
-    if (filterSeverity === "MEDIUM") return r.severity === "MEDIUM";
+    // Severity filter
+    if (filterSeverity === "HIGH" && r.severity !== "HIGH" && r.severity !== "CRITICAL") return false;
+    if (filterSeverity === "MEDIUM" && r.severity !== "MEDIUM") return false;
+    
+    // Search query filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchTitle = r.clause_title?.toLowerCase().includes(q);
+      const matchCategory = r.category?.toLowerCase().includes(q);
+      const matchOriginal = r.original_text?.toLowerCase().includes(q);
+      const matchRisk = r.risk_explanation?.toLowerCase().includes(q);
+      const matchRevision = r.recommended_revision?.toLowerCase().includes(q);
+      if (!matchTitle && !matchCategory && !matchOriginal && !matchRisk && !matchRevision) return false;
+    }
+    return true;
+  });
+
+  const filteredMissing = (auditReport?.missing_clauses || []).filter((m) => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchName = m.clause_name?.toLowerCase().includes(q);
+      const matchReason = m.reason?.toLowerCase().includes(q);
+      const matchSuggested = m.suggested_language?.toLowerCase().includes(q);
+      if (!matchName && !matchReason && !matchSuggested) return false;
+    }
     return true;
   });
 
@@ -345,43 +371,12 @@ export default function ContractAuditView({
         </div>
       </div>
 
-      {/* If Non-Contract, show interactive AI Prompt Hub */}
-      {isNonContract && onAskCopilot && (
-        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 backdrop-blur-md shadow-sm dark:shadow-xl flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-sky-500 dark:text-sky-400" />
-              Ask Copilot About This Publication
-            </h4>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">Instant AI Reasoning with Citations</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {[
-              "Summarize the key research findings and conclusions of this paper.",
-              "Explain the research methodology and empirical data sources used.",
-              "Who are the primary authors, publishers, and affiliated institutions?",
-              "What are the practical applications and recommendations from this work?"
-            ].map((promptText, pIdx) => (
-              <button
-                key={pIdx}
-                onClick={() => onAskCopilot(promptText)}
-                className="text-left p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 hover:bg-indigo-50/80 dark:hover:bg-indigo-950/40 border border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-500/40 text-xs text-slate-700 dark:text-slate-300 hover:text-indigo-700 dark:hover:text-indigo-200 transition-all flex items-center justify-between group cursor-pointer shadow-xs"
-              >
-                <span className="leading-relaxed">{promptText}</span>
-                <ArrowUpRight className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 shrink-0 ml-2 transition-colors" />
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Contract Risk & Redline Matrix (Only for Genuine Legal Contracts) */}
       {!isNonContract && (
         <div className="flex flex-col gap-5">
-          {/* Filter Tabs */}
-          <div className="flex flex-wrap items-center justify-between gap-3 px-1">
-            <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 backdrop-blur-md">
+          {/* Filter Tabs & Search Bar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-1">
+            <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 backdrop-blur-md">
               <button
                 onClick={() => setFilterSeverity("ALL")}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
@@ -390,7 +385,7 @@ export default function ContractAuditView({
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                 }`}
               >
-                All Clauses ({auditReport?.identified_risks?.length || 0})
+                All ({auditReport?.identified_risks?.length || 0})
               </button>
               <button
                 onClick={() => setFilterSeverity("HIGH")}
@@ -401,7 +396,7 @@ export default function ContractAuditView({
                 }`}
               >
                 <span className="w-2 h-2 rounded-full bg-rose-500" />
-                High Risk ({auditReport?.high_risk_count || 0})
+                High ({auditReport?.high_risk_count || 0})
               </button>
               <button
                 onClick={() => setFilterSeverity("MEDIUM")}
@@ -412,7 +407,7 @@ export default function ContractAuditView({
                 }`}
               >
                 <span className="w-2 h-2 rounded-full bg-amber-500" />
-                Medium Risk ({auditReport?.medium_risk_count || 0})
+                Med ({auditReport?.medium_risk_count || 0})
               </button>
               <button
                 onClick={() => setFilterSeverity("MISSING")}
@@ -423,17 +418,37 @@ export default function ContractAuditView({
                 }`}
               >
                 <AlertTriangle className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
-                Missing Terms ({auditReport?.missing_clauses?.length || 0})
+                Missing ({auditReport?.missing_clauses?.length || 0})
               </button>
+            </div>
+
+            {/* Instant Clause Search Bar */}
+            <div className="relative flex-1 max-w-xs">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search clauses or topics..."
+                className="w-full bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 rounded-xl pl-8 pr-7 py-1.5 focus:outline-none focus:border-indigo-500 transition-all shadow-xs"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
             </div>
 
             {onAskCopilot && (
               <button
                 onClick={() => onAskCopilot("What are the most critical liability and indemnity risks in this agreement?")}
-                className="flex items-center gap-1.5 text-xs text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 font-medium transition-colors"
+                className="hidden lg:flex items-center gap-1.5 text-xs text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 font-medium transition-colors shrink-0"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Consult Copilot on Risks</span>
+                <span>Consult Copilot</span>
                 <ArrowUpRight className="w-3 h-3" />
               </button>
             )}
@@ -442,13 +457,13 @@ export default function ContractAuditView({
           {/* Clause Risks or Missing Terms */}
           <div className="flex flex-col gap-4">
             {filterSeverity === "MISSING" ? (
-              (auditReport?.missing_clauses || []).length === 0 ? (
+              filteredMissing.length === 0 ? (
                 <div className="p-8 text-center bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/60 rounded-2xl text-slate-500 dark:text-slate-400 text-xs shadow-sm">
                   <CheckCircle2 className="w-6 h-6 text-emerald-500 dark:text-emerald-400 mx-auto mb-2" />
-                  All standard protective terms are present in this agreement.
+                  {searchQuery ? "No missing terms match your search filter." : "All standard protective terms are present in this agreement."}
                 </div>
               ) : (
-                (auditReport?.missing_clauses || []).map((missing, idx) => (
+                filteredMissing.map((missing, idx) => (
                   <div 
                     key={idx}
                     className="p-5 rounded-3xl bg-white dark:bg-slate-900/60 border border-purple-200 dark:border-purple-500/20 backdrop-blur-md shadow-sm dark:shadow-lg flex flex-col gap-3"
@@ -491,7 +506,9 @@ export default function ContractAuditView({
                             )}
                           </button>
                         </div>
-                        {missing.suggested_language}
+                        <p className="break-words whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-emerald-900 dark:text-emerald-200/90">
+                          {missing.suggested_language}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -501,7 +518,7 @@ export default function ContractAuditView({
               filteredRisks.length === 0 ? (
                 <div className="p-8 text-center bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/60 rounded-2xl text-slate-500 dark:text-slate-400 text-xs shadow-sm">
                   <CheckCircle2 className="w-6 h-6 text-emerald-500 dark:text-emerald-400 mx-auto mb-2" />
-                  No clauses matching this risk filter.
+                  {searchQuery ? "No clauses match your search query." : "No clauses matching this risk filter."}
                 </div>
               ) : (
                 filteredRisks.map((risk, idx) => {
@@ -589,7 +606,7 @@ export default function ContractAuditView({
                                   )}
                                 </button>
                               </div>
-                              <p className="font-mono text-[11px] leading-relaxed text-emerald-900 dark:text-emerald-200/90">
+                              <p className="font-mono text-[11px] leading-relaxed text-emerald-900 dark:text-emerald-200/90 break-words whitespace-pre-wrap">
                                 {risk.recommended_revision}
                               </p>
                             </div>
