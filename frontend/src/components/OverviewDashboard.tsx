@@ -3,20 +3,14 @@
 import React from "react";
 import { 
   Scale, 
-  ShieldCheck, 
   ShieldAlert, 
   MessageSquare, 
   FileText, 
   Sparkles, 
   ArrowRight, 
-  Layers, 
-  Upload, 
-  CheckCircle2, 
-  Activity,
-  BookOpen,
-  ArrowUpRight,
-  TrendingUp,
-  Clock
+  Layers,
+  Upload,
+  Activity
 } from "lucide-react";
 import { DocumentMeta } from "../lib/api";
 import FileUpload from "./FileUpload";
@@ -27,7 +21,7 @@ interface OverviewDashboardProps {
   onBatchUploadSuccess: (newDocs: DocumentMeta[]) => void;
   onNavigateToAudit: (docId: string) => void;
   onNavigateToCopilot: (docId?: string, prompt?: string) => void;
-  onNavigateToRepository: () => void;
+  onNavigateToRepository?: () => void;
 }
 
 export default function OverviewDashboard({
@@ -36,17 +30,7 @@ export default function OverviewDashboard({
   onBatchUploadSuccess,
   onNavigateToAudit,
   onNavigateToCopilot,
-  onNavigateToRepository,
 }: OverviewDashboardProps) {
-  // Metrics calculation
-  const totalDocs = documents.length;
-  const totalClauses = documents.reduce((acc, d) => acc + (d.total_chunks || 0), 0);
-  const highRiskCount = documents.filter((d) => d.risk_score && d.risk_score >= 65).length;
-  const moderateRiskCount = documents.filter((d) => d.risk_score && d.risk_score >= 35 && d.risk_score < 65).length;
-  const safeCount = documents.filter((d) => d.risk_score && d.risk_score < 35).length;
-
-  const recentDocs = documents.slice(0, 4);
-
   return (
     <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-1 pb-10">
       {/* Top Hero & Quick Upload Split Section */}
@@ -188,124 +172,6 @@ export default function OverviewDashboard({
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Real-time System Metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 backdrop-blur-md shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs mb-1">
-            <span className="font-medium">Total Contracts</span>
-            <FileText className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
-          </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white">{totalDocs}</div>
-          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Indexed Legal Agreements</div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 backdrop-blur-md shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs mb-1">
-            <span className="font-medium">Audited Clauses</span>
-            <Layers className="w-4 h-4 text-sky-500 dark:text-sky-400" />
-          </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white">{totalClauses}</div>
-          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Semantic Vector Provisions</div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 backdrop-blur-md shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs mb-1">
-            <span className="font-medium">Risk Status</span>
-            <BookOpen className="w-4 h-4 text-amber-500 dark:text-amber-400" />
-          </div>
-          <div className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-200 mt-0.5">
-            <span className="text-rose-600 dark:text-rose-400">{highRiskCount} High</span> / <span className="text-emerald-600 dark:text-emerald-400">{safeCount} Safe</span>
-          </div>
-          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Automated Rubric Audit</div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 backdrop-blur-md shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs mb-1">
-            <span className="font-medium">Critical Hazards</span>
-            <ShieldAlert className="w-4 h-4 text-rose-500 dark:text-rose-400" />
-          </div>
-          <div className="text-2xl font-black text-rose-600 dark:text-rose-400">{highRiskCount}</div>
-          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Contracts Flagged</div>
-        </div>
-      </div>
-
-      {/* Bottom Section: Recent Legal Agreements (Full Width) */}
-      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 backdrop-blur-md shadow-sm dark:shadow-xl flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" />
-            Recent Legal Agreements
-          </h3>
-          <button
-            onClick={onNavigateToRepository}
-            className="text-xs text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-          >
-            <span>View All ({documents.length})</span>
-            <ArrowRight className="w-3 h-3" />
-          </button>
-        </div>
-
-        {recentDocs.length === 0 ? (
-          <div className="p-8 text-center bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200 dark:border-slate-800/60 text-xs text-slate-500 dark:text-slate-400">
-            No legal contracts indexed yet. Upload an NDA, MSA, or employment agreement above to start.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            {recentDocs.map((doc) => {
-              const isDocHighRisk = doc.risk_score && doc.risk_score >= 65;
-              const isDocModerateRisk = doc.risk_score && doc.risk_score >= 35 && doc.risk_score < 65;
-
-              return (
-                <div
-                  key={doc.doc_id}
-                  onClick={() => onNavigateToAudit(doc.doc_id)}
-                  className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/40 hover:bg-slate-100 dark:hover:bg-slate-800/50 border border-slate-200 dark:border-slate-800/70 flex items-center justify-between gap-3 transition-all cursor-pointer group"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="p-2.5 rounded-xl shrink-0 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20">
-                      <Scale className="w-4 h-4" />
-                    </div>
-
-                    <div className="min-w-0">
-                      <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate group-hover:text-indigo-600 dark:group-hover:text-sky-300 transition-colors">
-                        {doc.filename}
-                      </h4>
-                      <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
-                        <span>{doc.total_pages} pages</span>
-                        <span>•</span>
-                        <span>{doc.total_chunks} clauses</span>
-                        <span>•</span>
-                        <span>{doc.uploaded_at?.split(" ")[0]}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    {doc.risk_score !== null && doc.risk_score !== undefined ? (
-                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border ${
-                        isDocHighRisk 
-                          ? "bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/30" 
-                          : isDocModerateRisk 
-                          ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30" 
-                          : "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30"
-                      }`}>
-                        Risk Score: {doc.risk_score}/100
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-200/60 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                        Ready to Audit
-                      </span>
-                    )}
-
-                    <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-sky-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
     </div>
   );

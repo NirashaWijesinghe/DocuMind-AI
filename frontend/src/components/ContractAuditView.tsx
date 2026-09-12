@@ -41,6 +41,7 @@ interface ContractAuditViewProps {
   onSelectDoc?: (docId: string) => void;
   onAskCopilot?: (prompt: string) => void;
   onNavigateToCopilot?: (docId?: string) => void;
+  onAuditComplete?: (audit: ContractAuditReport) => void;
 }
 
 export default function ContractAuditView({ 
@@ -48,7 +49,8 @@ export default function ContractAuditView({
   documents = [],
   onSelectDoc,
   onAskCopilot,
-  onNavigateToCopilot
+  onNavigateToCopilot,
+  onAuditComplete
 }: ContractAuditViewProps) {
   const [auditReport, setAuditReport] = useState<ContractAuditReport | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -61,12 +63,15 @@ export default function ContractAuditView({
     if (!selectedDoc) return;
     setLoading(true);
     try {
+      let data: ContractAuditReport;
       if (forceRefresh) {
-        const data = await auditContract(selectedDoc.doc_id);
-        setAuditReport(data);
+        data = await auditContract(selectedDoc.doc_id);
       } else {
-        const data = await getContractAudit(selectedDoc.doc_id);
-        setAuditReport(data);
+        data = await getContractAudit(selectedDoc.doc_id);
+      }
+      setAuditReport(data);
+      if (onAuditComplete) {
+        onAuditComplete(data);
       }
     } catch (err) {
       console.error("Failed to load contract audit", err);
@@ -466,47 +471,50 @@ export default function ContractAuditView({
                 filteredMissing.map((missing, idx) => (
                   <div 
                     key={idx}
-                    className="p-5 rounded-3xl bg-white dark:bg-slate-900/60 border border-purple-200 dark:border-purple-500/20 backdrop-blur-md shadow-sm dark:shadow-lg flex flex-col gap-3"
+                    className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-purple-200 dark:border-purple-500/20 backdrop-blur-md shadow-sm dark:shadow-lg flex flex-col gap-3.5"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <span className="px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30">
                           MISSING PROTECTIVE TERM
                         </span>
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">{missing.clause_name}</h4>
+                        <h4 className="text-base font-bold text-slate-900 dark:text-white">{missing.clause_name}</h4>
                       </div>
-                      <span className="text-[11px] font-semibold text-purple-600 dark:text-purple-400">
+                      <span className="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50 px-2.5 py-1 rounded-lg border border-purple-200 dark:border-purple-800/60">
                         Priority: {missing.importance}
                       </span>
                     </div>
 
-                    <div className="text-xs text-slate-600 dark:text-slate-300">
-                      <span className="text-slate-500 dark:text-slate-400 font-medium">Why omission is hazardous: </span>
+                    <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <strong className="text-slate-900 dark:text-slate-100 font-semibold">Why omission is hazardous: </strong>
                       {missing.reason}
                     </div>
 
                     {missing.suggested_language && (
-                      <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-xs font-mono text-emerald-800 dark:text-emerald-300/90 relative group">
-                        <div className="flex items-center justify-between mb-1.5 text-[10px] font-sans font-semibold text-slate-500 dark:text-slate-400">
-                          <span>RECOMMENDED CLAUSE TO INSERT:</span>
+                      <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-300/80 dark:border-emerald-500/30 text-emerald-950 dark:text-emerald-100 relative group">
+                        <div className="flex items-center justify-between mb-2 text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                          <span className="flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5" />
+                            Recommended Protective Clause to Insert:
+                          </span>
                           <button
                             onClick={() => handleCopyText(missing.suggested_language, `missing-${idx}`)}
-                            className="flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                            className="flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors cursor-pointer"
                           >
                             {copiedClauseId === `missing-${idx}` ? (
                               <>
-                                <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                                <span className="text-emerald-600 dark:text-emerald-400">Copied</span>
+                                <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Copied</span>
                               </>
                             ) : (
                               <>
-                                <Copy className="w-3 h-3" />
-                                <span>Copy</span>
+                                <Copy className="w-3.5 h-3.5" />
+                                <span>Copy Clause</span>
                               </>
                             )}
                           </button>
                         </div>
-                        <p className="break-words whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-emerald-900 dark:text-emerald-200/90">
+                        <p className="break-words whitespace-pre-wrap text-sm sm:text-[15px] leading-relaxed font-normal text-emerald-950 dark:text-emerald-100">
                           {missing.suggested_language}
                         </p>
                       </div>
@@ -535,78 +543,83 @@ export default function ContractAuditView({
                   return (
                     <div 
                       key={idx}
-                      className={`p-5 rounded-3xl bg-white dark:bg-slate-900/60 border transition-all ${
-                        isHigh ? "border-rose-200 dark:border-rose-500/20 hover:border-rose-300 dark:hover:border-rose-500/40" : "border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700/80"
-                      } backdrop-blur-md shadow-sm dark:shadow-lg flex flex-col gap-3.5`}
+                      className={`p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900/60 border transition-all ${
+                        isHigh ? "border-rose-200 dark:border-rose-500/30 hover:border-rose-300 dark:hover:border-rose-500/50" : "border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700/80"
+                      } backdrop-blur-md shadow-sm dark:shadow-lg flex flex-col gap-4`}
                     >
                       <div className="flex items-start justify-between gap-4">
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-1.5 min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${badgeClass}`}>
+                            <span className={`px-2.5 py-0.5 rounded-lg text-xs font-extrabold uppercase tracking-wider border ${badgeClass}`}>
                               {risk.severity} RISK
                             </span>
-                            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
+                            <span className="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
                               {risk.category}
                             </span>
-                            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                               Page {risk.page_number}
                             </span>
                           </div>
-                          <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">{risk.clause_title}</h4>
+                          <h4 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mt-1 leading-snug">{risk.clause_title}</h4>
                         </div>
 
                         <button
                           onClick={() => toggleClauseExpand(idx)}
-                          className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+                          className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors cursor-pointer shrink-0"
+                          title={isExpanded ? "Collapse clause" : "Expand clause"}
                         >
-                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                          {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                         </button>
                       </div>
 
                       {isExpanded && (
                         <>
                           {risk.original_text && (
-                            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800/80 text-xs text-slate-700 dark:text-slate-300 italic">
-                              <span className="text-[10px] font-sans font-semibold uppercase text-slate-500 dark:text-slate-400 not-italic block mb-1">
+                            <div className="p-4 sm:p-4.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80">
+                              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1.5">
                                 Contract Excerpt (Page {risk.page_number}):
                               </span>
-                              "{risk.original_text}"
+                              <p className="text-sm sm:text-[14.5px] leading-relaxed text-slate-800 dark:text-slate-200 font-normal">
+                                "{risk.original_text}"
+                              </p>
                             </div>
                           )}
 
-                          <div className="text-xs text-slate-700 dark:text-slate-200 flex items-start gap-2">
-                            <AlertTriangle className={`w-4 h-4 shrink-0 mt-0.5 ${isHigh ? "text-rose-500 dark:text-rose-400" : "text-amber-500 dark:text-amber-400"}`} />
+                          <div className="text-sm sm:text-[14.5px] leading-relaxed text-slate-800 dark:text-slate-200 flex items-start gap-3 p-3.5 rounded-2xl bg-slate-50/50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/50">
+                            <AlertTriangle className={`w-5 h-5 shrink-0 mt-0.5 ${isHigh ? "text-rose-500 dark:text-rose-400" : "text-amber-500 dark:text-amber-400"}`} />
                             <div>
-                              <strong className="text-slate-900 dark:text-slate-100 font-semibold">Legal Risk: </strong>
-                              <span className="text-slate-600 dark:text-slate-300">{risk.risk_explanation}</span>
+                              <strong className={`font-bold ${isHigh ? "text-rose-600 dark:text-rose-400" : "text-amber-600 dark:text-amber-400"}`}>
+                                Legal Risk Analysis:{" "}
+                              </strong>
+                              <span className="text-slate-700 dark:text-slate-200">{risk.risk_explanation}</span>
                             </div>
                           </div>
 
                           {risk.recommended_revision && (
-                            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-emerald-200 dark:border-emerald-500/20 text-xs text-emerald-800 dark:text-emerald-300 relative group">
-                              <div className="flex items-center justify-between mb-1.5 text-[10px] font-sans font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                            <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-300/80 dark:border-emerald-500/30 text-emerald-950 dark:text-emerald-100 relative group">
+                              <div className="flex items-center justify-between mb-2 text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
                                 <span className="flex items-center gap-1.5">
-                                  <Sparkles className="w-3 h-3" />
+                                  <Sparkles className="w-3.5 h-3.5" />
                                   AI Recommended Counter-Clause (Redline):
                                 </span>
                                 <button
                                   onClick={() => handleCopyText(risk.recommended_revision, `clause-${idx}`)}
-                                  className="flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-300 transition-colors cursor-pointer"
+                                  className="flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors cursor-pointer text-xs font-semibold"
                                 >
                                   {copiedClauseId === `clause-${idx}` ? (
                                     <>
-                                      <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                      <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                                       <span className="text-emerald-600 dark:text-emerald-400">Copied</span>
                                     </>
                                   ) : (
                                     <>
-                                      <Copy className="w-3 h-3" />
+                                      <Copy className="w-3.5 h-3.5" />
                                       <span>Copy Counter-Clause</span>
                                     </>
                                   )}
                                 </button>
                               </div>
-                              <p className="font-mono text-[11px] leading-relaxed text-emerald-900 dark:text-emerald-200/90 break-words whitespace-pre-wrap">
+                              <p className="text-sm sm:text-[15px] leading-relaxed text-emerald-950 dark:text-emerald-100 break-words whitespace-pre-wrap font-normal">
                                 {risk.recommended_revision}
                               </p>
                             </div>
@@ -616,10 +629,10 @@ export default function ContractAuditView({
                             <div className="flex justify-end pt-1">
                               <button
                                 onClick={() => onAskCopilot(`How should I negotiate or redline the '${risk.clause_title}' clause on Page ${risk.page_number}?`)}
-                                className="text-[11px] text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 flex items-center gap-1 font-medium transition-colors cursor-pointer"
+                                className="text-xs text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 flex items-center gap-1 font-semibold transition-colors cursor-pointer"
                               >
                                 <span>Draft negotiation strategy for this clause</span>
-                                <ArrowUpRight className="w-3 h-3" />
+                                <ArrowUpRight className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           )}

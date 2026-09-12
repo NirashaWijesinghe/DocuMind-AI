@@ -53,17 +53,37 @@ export default function RepositoryView({
     }
   };
 
-  const filteredDocs = documents.filter((d) => {
-    const matchesSearch = d.filename.toLowerCase().includes(searchQuery.toLowerCase());
-    if (!matchesSearch) return false;
+  const isHighRiskDoc = (d: DocumentMeta) => {
+    const level = (d.risk_level || "").toUpperCase();
+    const score = d.risk_score;
+    return (score !== null && score !== undefined && score >= 65) || level === "HIGH" || level === "CRITICAL";
+  };
 
-    const score = d.risk_score ?? 0;
+  const isMedRiskDoc = (d: DocumentMeta) => {
+    const level = (d.risk_level || "").toUpperCase();
+    const score = d.risk_score;
+    return (score !== null && score !== undefined && score >= 35 && score < 65) || level === "MEDIUM";
+  };
 
-    if (selectedFilter === "HIGH_RISK") return score >= 65;
-    if (selectedFilter === "MED_RISK") return score >= 35 && score < 65;
-    if (selectedFilter === "SAFE") return score < 35;
-    return true;
-  });
+  const isSafeDoc = (d: DocumentMeta) => {
+    return !isHighRiskDoc(d) && !isMedRiskDoc(d);
+  };
+
+  const filteredDocs = [...documents]
+    .sort((a, b) => new Date(b.uploaded_at || 0).getTime() - new Date(a.uploaded_at || 0).getTime())
+    .filter((d) => {
+      const matchesSearch = d.filename.toLowerCase().includes(searchQuery.toLowerCase());
+      if (!matchesSearch) return false;
+
+      if (selectedFilter === "HIGH_RISK") return isHighRiskDoc(d);
+      if (selectedFilter === "MED_RISK") return isMedRiskDoc(d);
+      if (selectedFilter === "SAFE") return isSafeDoc(d);
+      return true;
+    });
+
+  const highRiskCount = documents.filter(isHighRiskDoc).length;
+  const medRiskCount = documents.filter(isMedRiskDoc).length;
+  const safeCount = documents.filter(isSafeDoc).length;
 
   return (
     <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-1 pb-10">
@@ -164,7 +184,7 @@ export default function RepositoryView({
           <p className="text-slate-400 dark:text-slate-500">Try changing the search keyword or filter options.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex flex-col gap-3">
           {filteredDocs.map((doc) => {
             const isNonContract = doc.is_legal_contract === false || doc.risk_level === "NON_CONTRACT";
             const score = doc.risk_score ?? 0;
@@ -174,55 +194,44 @@ export default function RepositoryView({
             return (
               <div
                 key={doc.doc_id}
-                className="p-5 rounded-3xl bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-900/90 border border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-sm dark:shadow-lg flex flex-col justify-between gap-4 group"
+                className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-900/90 border border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-sm dark:shadow-md flex flex-col lg:flex-row lg:items-center justify-between gap-4 group"
               >
-                <div>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <div className="p-2.5 rounded-2xl shrink-0 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20">
-                        <Scale className="w-5 h-5" />
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/20">
-                            {doc.document_category || "Legal Contract"}
-                          </span>
-                        </div>
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate mt-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-200 transition-colors">
-                          {doc.filename}
-                        </h3>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => setDocToDelete(doc)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors cursor-pointer"
-                      title="Delete contract"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                {/* Left: Document Icon + Name & Category + Metadata chips */}
+                <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                  <div className="p-3 rounded-2xl shrink-0 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20">
+                    <Scale className="w-5 h-5" />
                   </div>
 
-                  {/* Metadata Chips */}
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 text-xs text-slate-500 dark:text-slate-400">
-                    <span>📄 {doc.total_pages} Pages</span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <Layers className="w-3.5 h-3.5 text-slate-400" />
-                      {doc.total_chunks} Clauses
-                    </span>
-                    <span>•</span>
-                    <span>{doc.file_size_kb} KB</span>
-                    <span>•</span>
-                    <span className="text-slate-400 dark:text-slate-500">{doc.uploaded_at}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/20">
+                        {doc.document_category || "Legal Contract"}
+                      </span>
+                      <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                        Uploaded: {doc.uploaded_at}
+                      </span>
+                    </div>
+
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-200 transition-colors">
+                      {doc.filename}
+                    </h3>
+
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      <span>📄 {doc.total_pages} Pages</span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <Layers className="w-3.5 h-3.5 text-slate-400" />
+                        {doc.total_chunks} Clauses
+                      </span>
+                      <span>•</span>
+                      <span>{doc.file_size_kb} KB</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Bottom Action Footer */}
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-3">
-                  {/* Status Pill */}
-                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border ${
+                {/* Right: Risk Badge & Action Buttons */}
+                <div className="flex items-center justify-between lg:justify-end gap-3 shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100 dark:border-slate-800/80">
+                  <span className={`px-3 py-1.5 rounded-xl text-xs font-bold border ${
                     isHigh 
                       ? "bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/30" 
                       : isMed 
@@ -230,15 +239,14 @@ export default function RepositoryView({
                       : "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30"
                   }`}>
                     {doc.risk_score !== null && doc.risk_score !== undefined
-                      ? `RISK SCORE: ${score}/100 (${doc.risk_level || "SAFE"})`
-                      : "READY TO AUDIT"}
+                      ? `Risk Score: ${score}/100 (${doc.risk_level || "SAFE"})`
+                      : "Ready to Audit"}
                   </span>
 
-                  {/* Actions */}
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => onSelectDocForAudit(doc.doc_id)}
-                      className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/25 border border-indigo-200 dark:border-indigo-500/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/25 border border-indigo-200 dark:border-indigo-500/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                     >
                       <Scale className="w-3.5 h-3.5" />
                       <span>Audit Risk</span>
@@ -246,10 +254,18 @@ export default function RepositoryView({
 
                     <button
                       onClick={() => onSelectDocForCopilot(doc.doc_id)}
-                      className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" />
                       <span>Copilot</span>
+                    </button>
+
+                    <button
+                      onClick={() => setDocToDelete(doc)}
+                      className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors cursor-pointer ml-1"
+                      title="Delete agreement"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>

@@ -31,6 +31,7 @@ import {
   deleteSession, 
   DocumentMeta, 
   ChatSession, 
+  ContractAuditReport,
   checkBackendHealth 
 } from "../lib/api";
 
@@ -82,6 +83,29 @@ export default function DashboardPage() {
     const interval = setInterval(checkHealth, 15000);
     return () => clearInterval(interval);
   }, []);
+
+  // Re-fetch documents when switching to Repository or Overview so fresh risk scores and classifications are instantly shown
+  useEffect(() => {
+    if (activeTab === "repository" || activeTab === "overview") {
+      loadDocs();
+    }
+  }, [activeTab]);
+
+  const handleAuditComplete = (audit: ContractAuditReport) => {
+    setDocuments((prev) =>
+      prev.map((d) =>
+        d.doc_id === audit.doc_id
+          ? {
+              ...d,
+              risk_score: audit.overall_risk_score,
+              risk_level: audit.risk_level,
+              is_legal_contract: audit.is_legal_contract,
+              document_category: audit.document_category,
+            }
+          : d
+      )
+    );
+  };
 
   const handleSelectSession = (sessionId: string) => {
     setActiveSessionId(sessionId);
@@ -273,6 +297,7 @@ export default function DashboardPage() {
             selectedDoc={selectedDoc}
             documents={documents}
             onSelectDoc={(id) => setSelectedDocId(id)}
+            onAuditComplete={handleAuditComplete}
             onAskCopilot={(prompt) => {
               setActiveTab("copilot");
             }}
@@ -330,10 +355,10 @@ export default function DashboardPage() {
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-slate-200 dark:border-slate-800/60 bg-white/50 dark:bg-slate-950/40 py-4 px-6 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors duration-300">
+      <footer className="relative z-10 border-t border-slate-200 dark:border-slate-800/60 bg-white/50 dark:bg-slate-950/40 py-3.5 px-6 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors duration-300">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>LexiGuard AI • Enterprise Legal Contract Intelligence & Risk Auditor (FastAPI + ChromaDB + Gemini 1.5)</span>
-          <span className="text-slate-400 dark:text-slate-500 font-medium">Built for High-Impact Legal Due Diligence & Document Reasoning</span>
+          <span>© 2026 LexiGuard AI • Enterprise Legal Contract Intelligence & Risk Auditor</span>
+          <span className="text-slate-400 dark:text-slate-500 font-medium">Confidential & Secure AI Legal Due Diligence</span>
         </div>
       </footer>
     </div>

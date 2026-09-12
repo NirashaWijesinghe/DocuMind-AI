@@ -77,7 +77,27 @@ async def upload_document(file: UploadFile = File(...)):
             )
 
         # Index chunks into Vector Database
+        # Index chunks into Vector Database
         vector_service.add_chunks(chunks)
+
+        # Run instant initial document classification & risk audit
+        risk_score = None
+        risk_level = None
+        is_legal_contract = True
+        document_category = "Legal Agreement"
+
+        try:
+            audit_report = ai_service.audit_contract(doc_id, file.filename, chunks)
+            risk_score = audit_report.overall_risk_score
+            risk_level = audit_report.risk_level
+            is_legal_contract = audit_report.is_legal_contract
+            document_category = audit_report.document_category
+
+            audits_dict = _load_audits()
+            audits_dict[doc_id] = audit_report.model_dump()
+            _save_audits(audits_dict)
+        except Exception as audit_err:
+            print(f"[DocumentUpload] Audit warning for {file.filename}: {audit_err}")
 
         # Store metadata
         file_size_kb = round(file_path.stat().st_size / 1024, 2)
@@ -88,8 +108,10 @@ async def upload_document(file: UploadFile = File(...)):
             "total_pages": total_pages,
             "total_chunks": len(chunks),
             "uploaded_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "risk_score": None,
-            "risk_level": None
+            "risk_score": risk_score,
+            "risk_level": risk_level,
+            "is_legal_contract": is_legal_contract,
+            "document_category": document_category,
         }
 
         all_meta = _load_meta()
@@ -98,7 +120,7 @@ async def upload_document(file: UploadFile = File(...)):
 
         return UploadResponse(
             success=True,
-            message=f"Contract '{file.filename}' processed & indexed ({total_pages} pages, {len(chunks)} clauses).",
+            message=f"Contract '{file.filename}' processed, audited & indexed ({total_pages} pages, {len(chunks)} clauses).",
             document=DocumentMetadata(**doc_meta)
         )
 
@@ -118,6 +140,7 @@ async def upload_multiple_documents(files: list[UploadFile] = File(...)):
     successful_docs: list[DocumentMetadata] = []
     failed_files: list[dict] = []
     all_meta = _load_meta()
+    audits_dict = _load_audits()
 
     for file in files:
         if not file.filename.lower().endswith(".pdf"):
@@ -136,6 +159,22 @@ async def upload_multiple_documents(files: list[UploadFile] = File(...)):
 
             vector_service.add_chunks(chunks)
 
+            # Instant audit
+            risk_score = None
+            risk_level = None
+            is_legal_contract = True
+            document_category = "Legal Agreement"
+
+            try:
+                audit_report = ai_service.audit_contract(doc_id, file.filename, chunks)
+                risk_score = audit_report.overall_risk_score
+                risk_level = audit_report.risk_level
+                is_legal_contract = audit_report.is_legal_contract
+                document_category = audit_report.document_category
+                audits_dict[doc_id] = audit_report.model_dump()
+            except Exception as audit_err:
+                print(f"[BatchUpload] Audit warning for {file.filename}: {audit_err}")
+
             file_size_kb = round(file_path.stat().st_size / 1024, 2)
             doc_meta = {
                 "doc_id": doc_id,
@@ -144,14 +183,17 @@ async def upload_multiple_documents(files: list[UploadFile] = File(...)):
                 "total_pages": total_pages,
                 "total_chunks": len(chunks),
                 "uploaded_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "risk_score": None,
-                "risk_level": None
+                "risk_score": risk_score,
+                "risk_level": risk_level,
+                "is_legal_contract": is_legal_contract,
+                "document_category": document_category,
             }
             all_meta[doc_id] = doc_meta
             successful_docs.append(DocumentMetadata(**doc_meta))
         except Exception as err:
             failed_files.append({"filename": file.filename, "reason": str(err)})
 
+    _save_audits(audits_dict)
     _save_meta(all_meta)
 
     return BatchUploadResponse(
