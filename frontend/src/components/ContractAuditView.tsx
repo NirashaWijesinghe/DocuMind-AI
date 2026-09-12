@@ -271,7 +271,7 @@ export default function ContractAuditView({
                 <Info className="w-4 h-4 text-sky-500 dark:text-sky-400" />
                 {isNonContract ? "Executive Summary & Core Insights" : "Executive Legal Due Diligence Summary"}
               </h3>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{selectedDoc.total_pages} Pages • {selectedDoc.total_chunks} Chunks</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">{selectedDoc.total_pages} Pages • {selectedDoc.file_size_kb} KB</span>
             </div>
 
             <div className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed space-y-3 font-normal">

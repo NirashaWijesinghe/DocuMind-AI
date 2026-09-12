@@ -153,14 +153,9 @@ export default function DashboardPage() {
               <Scale className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base font-bold tracking-tight bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-800 dark:from-white dark:via-indigo-100 dark:to-sky-200 bg-clip-text text-transparent">
-                  LexiGuard AI
-                </h1>
-                <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30">
-                  v2.5 Workspace
-                </span>
-              </div>
+              <h1 className="text-base font-bold tracking-tight bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-800 dark:from-white dark:via-indigo-100 dark:to-sky-200 bg-clip-text text-transparent">
+                LexiGuard AI
+              </h1>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">Enterprise Legal Contract Intelligence & Risk Auditor</p>
             </div>
           </div>

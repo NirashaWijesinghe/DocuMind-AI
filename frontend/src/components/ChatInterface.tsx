@@ -718,7 +718,7 @@ export default function ChatInterface({
                 Target Document: {selectedDoc.filename}
               </span>
               <span className="text-[10px] text-sky-600/80 dark:text-sky-400/80 shrink-0">
-                ({selectedDoc.total_pages} pages, {selectedDoc.total_chunks} chunks)
+                ({selectedDoc.total_pages} pages, {selectedDoc.file_size_kb} KB)
               </span>
             </div>
             {setSelectedDocId && (

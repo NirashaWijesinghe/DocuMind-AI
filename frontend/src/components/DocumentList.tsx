@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { FileText, Trash2, Layers, Search, Sparkles, X, AlertTriangle, Scale, ShieldAlert, ShieldCheck } from "lucide-react";
+import { FileText, Trash2, Search, Sparkles, X, AlertTriangle, Scale, ShieldAlert, ShieldCheck } from "lucide-react";
 import { DocumentMeta, deleteDocument } from "../lib/api";
 
 interface DocumentListProps {
@@ -122,10 +122,7 @@ export default function DocumentList({
                     <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                       <span>{doc.total_pages} pages</span>
                       <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <Layers className="w-3 h-3 text-slate-400" />
-                        {doc.total_chunks} {isNonContract ? "sections" : "clauses"}
-                      </span>
+                      <span>{doc.file_size_kb} KB</span>
                       {isNonContract ? (
                         <>
                           <span>•</span>

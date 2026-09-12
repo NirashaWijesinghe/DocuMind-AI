@@ -8,7 +8,6 @@ import {
   FileText, 
   ShieldAlert, 
   ShieldCheck, 
-  Layers, 
   Trash2, 
   Sparkles, 
   ArrowUpRight, 
@@ -91,17 +90,14 @@ export default function RepositoryView({
       <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 backdrop-blur-md shadow-sm dark:shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30">
-              Contract Repository
-            </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400">Total: {documents.length} Agreements</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">{documents.length} Agreements Indexed</span>
           </div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <Scale className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-            Legal Agreement & Contract Library
+            Legal Agreement Library
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Search, filter, and inspect indexed agreements, risk scores, and vector clause provisions.
+            Search, filter, and inspect analyzed commercial contracts, risk scores, and protective terms.
           </p>
         </div>
 
@@ -219,12 +215,7 @@ export default function RepositoryView({
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-slate-500 dark:text-slate-400">
                       <span>📄 {doc.total_pages} Pages</span>
                       <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <Layers className="w-3.5 h-3.5 text-slate-400" />
-                        {doc.total_chunks} Clauses
-                      </span>
-                      <span>•</span>
-                      <span>{doc.file_size_kb} KB</span>
+                      <span>💾 {doc.file_size_kb} KB</span>
                     </div>
                   </div>
                 </div>
