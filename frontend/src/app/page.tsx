@@ -221,7 +221,7 @@ export default function DashboardPage() {
             {/* Quick Upload Button */}
             <button
               onClick={() => setActiveTab("overview")}
-              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-bold shadow-md shadow-indigo-500/25 flex items-center gap-1.5 transition-all cursor-pointer hover:scale-105 active:scale-95"
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-bold shadow-md shadow-indigo-500/25 flex items-center gap-1.5 transition-all cursor-pointer hover:scale-105 active:scale-95"
               title="Upload New Agreement or Document"
             >
               <Upload className="w-3.5 h-3.5" />
@@ -247,21 +247,17 @@ export default function DashboardPage() {
                 </>
               )}
             </button>
-
-            {/* Health Status Indicator */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-xs shadow-inner">
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  backendHealth.status === "healthy" ? "bg-emerald-500 shadow-[0_0_8px_#10b981]" : "bg-amber-400"
-                }`}
-              />
-              <span className="text-slate-700 dark:text-slate-300 text-[11px] font-medium">
-                {backendHealth.status === "healthy" ? "LexiGuard Online" : "Connecting..."}
-              </span>
-            </div>
           </div>
         </div>
       </header>
+
+      {/* Conditional Server Offline Alert Banner (Only shown if disconnected) */}
+      {backendHealth.status === "offline" && (
+        <div className="bg-rose-500/10 border-b border-rose-500/30 px-4 py-2 text-center text-xs font-semibold text-rose-600 dark:text-rose-400 flex items-center justify-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+          <span>Backend server is offline. Please make sure the Python FastAPI service is running on port 8000.</span>
+        </div>
+      )}
 
       {/* Main Workspace Container */}
       <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto p-6 flex flex-col">
