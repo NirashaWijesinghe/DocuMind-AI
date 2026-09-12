@@ -443,7 +443,7 @@ export default function ContractAuditView({
   return (
     <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-1 pb-10">
       {/* Top Document Header & Selector */}
-      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 backdrop-blur-xl shadow-sm dark:shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="relative z-30 p-6 rounded-3xl bg-white/95 dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800/80 backdrop-blur-xl shadow-sm dark:shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-1 min-w-0">
           <div className={`p-3 rounded-2xl shrink-0 ${
             isNonContract ? "bg-sky-50 dark:bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-500/30" : "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30"
@@ -538,17 +538,6 @@ export default function ContractAuditView({
                 </button>
 
                 <button
-                  onClick={handleExportMarkdown}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-500/15 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors text-left cursor-pointer group"
-                >
-                  <FileDown className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
-                  <div>
-                    <div className="font-semibold leading-tight">Markdown (.md)</div>
-                    <div className="text-[10px] text-slate-400">For Notion, Obsidian & Tech Docs</div>
-                  </div>
-                </button>
-
-                <button
                   onClick={handleCopyAudit}
                   className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-500/15 hover:text-purple-700 dark:hover:text-purple-300 transition-colors text-left cursor-pointer group"
                 >
@@ -579,7 +568,7 @@ export default function ContractAuditView({
       </div>
 
       {/* Bento Grid: Executive Summary & Metadata Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Card 1: Executive Summary (7 Columns) */}
         <div className="lg:col-span-7 p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 backdrop-blur-md shadow-sm dark:shadow-xl flex flex-col justify-between gap-4">
           <div>
