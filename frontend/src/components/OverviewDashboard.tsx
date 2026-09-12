@@ -110,63 +110,61 @@ export default function OverviewDashboard({
         </div>
       </div>
 
-      {/* Middle Section: Horizontal 3-Step Guided Legal AI Flow */}
-      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 backdrop-blur-md shadow-sm dark:shadow-xl flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-500/15 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-              <Activity className="w-3.5 h-3.5" />
-            </div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+      {/* Visual 3-Step Process Flow (Horizontal Guide) */}
+      <div className="p-6 sm:p-7 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 backdrop-blur-md shadow-sm dark:shadow-xl flex flex-col gap-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse" />
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-slate-100">
               How LexiGuard AI Works
             </h3>
           </div>
-          <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-500/20">
+          <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/15 px-3 py-1 rounded-full border border-indigo-200 dark:border-indigo-500/30">
             Instant AI Due Diligence Flow
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800/70 flex items-start gap-3.5 hover:border-indigo-400 dark:hover:border-indigo-500/40 transition-all group">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform shadow-xs">
-              <Upload className="w-4 h-4" />
+          <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 flex items-start gap-4 hover:border-indigo-400 dark:hover:border-indigo-500/40 transition-all group">
+            <div className="w-11 h-11 rounded-2xl bg-indigo-50 dark:bg-indigo-500/15 border border-indigo-200 dark:border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform shadow-xs">
+              <Upload className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300">Step 1</span>
-                <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">Upload & Smart Scan</h4>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300">Step 1</span>
+                <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Upload & Smart Scan</h4>
               </div>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
-                Upload your contract. AI instantly scans and reads every page and clause in seconds.
+              <p className="text-xs sm:text-[13.5px] text-slate-700 dark:text-slate-200 mt-1.5 leading-relaxed font-normal">
+                Upload any legal agreement. AI instantly parses and indexes every page and clause in seconds.
               </p>
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800/70 flex items-start gap-3.5 hover:border-amber-400 dark:hover:border-amber-500/40 transition-all group">
-            <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 group-hover:scale-105 transition-transform shadow-xs">
-              <Scale className="w-4 h-4" />
+          <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 flex items-start gap-4 hover:border-amber-400 dark:hover:border-amber-500/40 transition-all group">
+            <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 group-hover:scale-105 transition-transform shadow-xs">
+              <Scale className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300">Step 2</span>
-                <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">Automated Risk Audit</h4>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300">Step 2</span>
+                <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Automated Risk Audit</h4>
               </div>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+              <p className="text-xs sm:text-[13.5px] text-slate-700 dark:text-slate-200 mt-1.5 leading-relaxed font-normal">
                 Calculates an instant Risk Score (0–100), flagging unfair terms, liability traps, and missing protections.
               </p>
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800/70 flex items-start gap-3.5 hover:border-emerald-400 dark:hover:border-emerald-500/40 transition-all group">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 group-hover:scale-105 transition-transform shadow-xs">
-              <MessageSquare className="w-4 h-4" />
+          <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 flex items-start gap-4 hover:border-emerald-400 dark:hover:border-emerald-500/40 transition-all group">
+            <div className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 group-hover:scale-105 transition-transform shadow-xs">
+              <MessageSquare className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">Step 3</span>
-                <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">Ask AI Legal Assistant</h4>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">Step 3</span>
+                <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Ask AI Legal Assistant</h4>
               </div>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+              <p className="text-xs sm:text-[13.5px] text-slate-700 dark:text-slate-200 mt-1.5 leading-relaxed font-normal">
                 Ask questions, draft safer counter-clauses, and get clear answers backed by exact page citations.
               </p>
             </div>
