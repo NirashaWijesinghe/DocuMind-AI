@@ -20,6 +20,37 @@ router = APIRouter(prefix="/api/documents", tags=["Documents"])
 # Metadata storage file
 META_FILE = settings.UPLOAD_PATH / "documents_meta.json"
 AUDIT_FILE = settings.UPLOAD_PATH / "contracts_audit.json"
+SAMPLE_CONTRACTS_DIR = Path(__file__).resolve().parents[3] / "sample_contracts"
+
+SAMPLE_CATALOG = [
+    {
+        "id": "saas",
+        "filename": "Enterprise_SaaS_Vendor_Agreement.pdf",
+        "title": "Enterprise SaaS & Vendor Agreement",
+        "description": "High Risk — Unlimited indemnification trap, immediate termination without cause, and broad IP assignment.",
+        "risk_level": "HIGH",
+        "contract_type": "Vendor SLA / Master Services Agreement",
+        "tags": ["SaaS", "Indemnity Trap", "High Risk"]
+    },
+    {
+        "id": "nda",
+        "filename": "Mutual_Non_Disclosure_Agreement_NDA.pdf",
+        "title": "Mutual Non-Disclosure Agreement (NDA)",
+        "description": "Moderate Risk — 10-year perpetual confidentiality and strict 24-month non-solicitation of personnel.",
+        "risk_level": "MEDIUM",
+        "contract_type": "Mutual NDA",
+        "tags": ["NDA", "Confidentiality", "Moderate Risk"]
+    },
+    {
+        "id": "employment",
+        "filename": "Employment_Agreement_Software_Engineer.pdf",
+        "title": "Senior Software Engineer Employment Agreement",
+        "description": "Critical Risk — Extreme non-compete covenants, broad IP assignment, and restrictive termination penalties.",
+        "risk_level": "CRITICAL",
+        "contract_type": "Employment Agreement",
+        "tags": ["Employment", "Non-Compete", "Critical Risk"]
+    }
+]
 
 def _load_meta() -> dict:
     if META_FILE.exists():
@@ -203,6 +234,105 @@ async def upload_multiple_documents(files: list[UploadFile] = File(...)):
         successful_documents=successful_docs,
         failed_files=failed_files
     )
+
+@router.get("/samples")
+async def get_sample_contracts():
+    """
+    Returns pre-configured sample legal contracts ready for 1-click evaluation.
+    """
+    return {"samples": SAMPLE_CATALOG}
+
+@router.post("/load-sample", response_model=UploadResponse)
+async def load_sample_contract(payload: dict):
+    """
+    Loads and processes a sample contract PDF directly from the sample catalog.
+    """
+    sample_id_or_file = payload.get("filename") or payload.get("id") or payload.get("sample_id")
+    if not sample_id_or_file:
+        raise HTTPException(status_code=400, detail="Missing sample identifier or filename.")
+
+    # Find catalog item
+    item = None
+    for s in SAMPLE_CATALOG:
+        if s["id"] == sample_id_or_file or s["filename"] == sample_id_or_file:
+            item = s
+            break
+    
+    filename = item["filename"] if item else sample_id_or_file
+    if not filename.lower().endswith(".pdf"):
+        filename = f"{filename}.pdf"
+
+    # Source path
+    source_pdf = SAMPLE_CONTRACTS_DIR / filename
+    if not source_pdf.exists():
+        alt_path = Path("sample_contracts") / filename
+        if alt_path.exists():
+            source_pdf = alt_path
+        else:
+            raise HTTPException(status_code=404, detail=f"Sample contract file '{filename}' not found.")
+
+    # Destination in UPLOAD_PATH
+    dest_path = settings.UPLOAD_PATH / filename
+    try:
+        shutil.copyfile(source_pdf, dest_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to copy sample file: {str(e)}")
+
+    # Extract & Chunk text
+    try:
+        chunks, total_pages, doc_id = pdf_service.process_pdf(dest_path, filename)
+        if not chunks:
+            raise HTTPException(status_code=400, detail="Could not extract text from this sample PDF.")
+
+        # Index chunks
+        vector_service.add_chunks(chunks)
+
+        # Audit
+        risk_score = None
+        risk_level = None
+        is_legal_contract = True
+        document_category = "Legal Agreement"
+
+        try:
+            audit_report = ai_service.audit_contract(doc_id, filename, chunks)
+            risk_score = audit_report.overall_risk_score
+            risk_level = audit_report.risk_level
+            is_legal_contract = audit_report.is_legal_contract
+            document_category = audit_report.document_category
+
+            audits_dict = _load_audits()
+            audits_dict[doc_id] = audit_report.model_dump()
+            _save_audits(audits_dict)
+        except Exception as audit_err:
+            print(f"[SampleLoad] Audit warning for {filename}: {audit_err}")
+
+        file_size_kb = round(dest_path.stat().st_size / 1024, 2)
+        doc_meta = {
+            "doc_id": doc_id,
+            "filename": filename,
+            "file_size_kb": file_size_kb,
+            "total_pages": total_pages,
+            "total_chunks": len(chunks),
+            "uploaded_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "risk_score": risk_score,
+            "risk_level": risk_level,
+            "is_legal_contract": is_legal_contract,
+            "document_category": document_category,
+        }
+
+        all_meta = _load_meta()
+        all_meta[doc_id] = doc_meta
+        _save_meta(all_meta)
+
+        return UploadResponse(
+            success=True,
+            message=f"Sample '{item['title'] if item else filename}' processed, audited & indexed.",
+            document=DocumentMetadata(**doc_meta)
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing sample contract: {str(e)}")
 
 @router.get("", response_model=DocumentListResponse)
 async def list_documents():

@@ -3,7 +3,7 @@ import json
 import re
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-import google.generativeai as genai
+from google import genai
 from app.config import settings
 from app.models.schemas import (
     ContractAuditReport, 
@@ -14,25 +14,44 @@ from app.models.schemas import (
 class AIService:
     def __init__(self):
         self._configured_key = None
-        self._model = None
+        self._client = None
         self.model_candidates = [
-            "gemini-1.5-flash",
-            "gemini-2.0-flash",
-            "gemini-1.5-pro",
-            "gemini-2.5-flash",
-            "gemini-pro",
             "gemini-3.6-flash",
-            "gemini-3.7-flash"
+            "gemini-3.7-flash",
+            "gemini-3.5-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-2.5-pro"
         ]
 
-    def _get_model(self):
+    def _get_client(self):
         api_key = os.getenv("GOOGLE_API_KEY") or settings.GOOGLE_API_KEY
-        if api_key and api_key != self._configured_key:
-            genai.configure(api_key=api_key)
+        if api_key and (api_key != self._configured_key or self._client is None):
+            self._client = genai.Client(api_key=api_key)
             self._configured_key = api_key
-            model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-            self._model = genai.GenerativeModel(model_name)
-        return self._model, api_key
+        return self._client, api_key
+
+    def _generate_content_with_fallback(self, prompt: str) -> tuple[Optional[str], Optional[str]]:
+        client, api_key = self._get_client()
+        if not api_key or not client:
+            return None, "GOOGLE_API_KEY not configured"
+
+        default_model = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+        candidate_models = [default_model] + [m for m in self.model_candidates if m != default_model]
+        last_error = None
+
+        for m_name in candidate_models:
+            try:
+                response = client.models.generate_content(
+                    model=m_name,
+                    contents=prompt
+                )
+                if response and response.text:
+                    return response.text, None
+            except Exception as e:
+                last_error = str(e)
+                continue
+
+        return None, last_error
 
     def generate_rag_response(
         self, 
@@ -87,27 +106,15 @@ CONTEXT EXCERPTS:
 
 ANSWER:"""
 
-        model, api_key = self._get_model()
+        response_text, error = self._generate_content_with_fallback(system_prompt)
+        if response_text:
+            return response_text
 
-        if api_key:
-            default_model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-            candidate_models = [default_model] + [m for m in self.model_candidates if m != default_model]
-            last_error = None
-
-            for m_name in candidate_models:
-                try:
-                    m = genai.GenerativeModel(m_name)
-                    response = m.generate_content(system_prompt)
-                    if response and response.text:
-                        return response.text
-                except Exception as e:
-                    last_error = str(e)
-                    continue
-
-            return f"Error connecting to Gemini AI: {last_error}. Please verify your GOOGLE_API_KEY."
+        if error:
+            print(f"[LexiGuard AI RAG Error]: {error}")
 
         # Fallback demonstration mode
-        return f"""**[LexiGuard Demo Advisory - Please configure GOOGLE_API_KEY in backend/.env for live LLM reasoning]**
+        return f"""**[LexiGuard Demo Advisory - Live LLM fallback active]**
 
 Based on **{len(context_chunks)} relevant sections** retrieved from **{context_chunks[0]['filename']}**:
 
@@ -115,7 +122,7 @@ Based on **{len(context_chunks)} relevant sections** retrieved from **{context_c
 
 **Analysis:**
 - **Reference:** Page {context_chunks[0]['page_number']}
-- **Summary:** Context retrieved successfully. For deep AI synthesis, ensure GOOGLE_API_KEY is active."""
+- **Summary:** Context retrieved successfully. For deep AI synthesis, ensure GOOGLE_API_KEY is active and valid."""
 
     def audit_contract(self, doc_id: str, filename: str, chunks: List[Dict[str, Any]]) -> ContractAuditReport:
         """
@@ -196,95 +203,87 @@ DOCUMENT TEXT EXCERPTS:
 
 JSON OUTPUT (NO PREAMBLE, NO MARKDOWN TICKS):"""
 
-        model, api_key = self._get_model()
-        if api_key:
-            default_model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-            candidate_models = [default_model] + [m for m in self.model_candidates if m != default_model]
-            
-            for m_name in candidate_models:
-                try:
-                    m = genai.GenerativeModel(m_name)
-                    res = m.generate_content(audit_prompt)
-                    raw_text = res.text.strip() if res and res.text else ""
-                    
-                    # Clean potential markdown wrappers
-                    if raw_text.startswith("```json"):
-                        raw_text = raw_text[7:]
-                    elif raw_text.startswith("```"):
-                        raw_text = raw_text[3:]
-                    if raw_text.endswith("```"):
-                        raw_text = raw_text[:-3]
-                    raw_text = raw_text.strip()
+        raw_text, error = self._generate_content_with_fallback(audit_prompt)
+        if raw_text:
+            try:
+                # Clean potential markdown wrappers
+                raw_clean = raw_text.strip()
+                if raw_clean.startswith("```json"):
+                    raw_clean = raw_clean[7:]
+                elif raw_clean.startswith("```"):
+                    raw_clean = raw_clean[3:]
+                if raw_clean.endswith("```"):
+                    raw_clean = raw_clean[:-3]
+                raw_clean = raw_clean.strip()
 
-                    parsed = json.loads(raw_text)
+                parsed = json.loads(raw_clean)
 
-                    is_contract = parsed.get("is_legal_contract", True)
-                    doc_category = parsed.get("document_category", "Legal Agreement" if is_contract else "General Document")
-                    contract_type = parsed.get("contract_type", "Commercial Contract" if is_contract else "Academic / General Document")
-                    non_contract_notice = parsed.get("non_contract_notice")
+                is_contract = parsed.get("is_legal_contract", True)
+                doc_category = parsed.get("document_category", "Legal Agreement" if is_contract else "General Document")
+                contract_type = parsed.get("contract_type", "Commercial Contract" if is_contract else "Academic / General Document")
+                non_contract_notice = parsed.get("non_contract_notice")
 
-                    # Build identified risks
-                    identified_risks = []
-                    if is_contract:
-                        for r in parsed.get("identified_risks", []):
-                            identified_risks.append(ContractClauseRisk(
-                                category=r.get("category", "General Legal"),
-                                clause_title=r.get("clause_title", "Contract Term"),
-                                severity=r.get("severity", "MEDIUM").upper(),
-                                page_number=int(r.get("page_number", 1)),
-                                original_text=r.get("original_text", ""),
-                                risk_explanation=r.get("risk_explanation", ""),
-                                recommended_revision=r.get("recommended_revision", "")
-                            ))
+                # Build identified risks
+                identified_risks = []
+                if is_contract:
+                    for r in parsed.get("identified_risks", []):
+                        identified_risks.append(ContractClauseRisk(
+                            category=r.get("category", "General Legal"),
+                            clause_title=r.get("clause_title", "Contract Term"),
+                            severity=r.get("severity", "MEDIUM").upper(),
+                            page_number=int(r.get("page_number", 1)),
+                            original_text=r.get("original_text", ""),
+                            risk_explanation=r.get("risk_explanation", ""),
+                            recommended_revision=r.get("recommended_revision", "")
+                        ))
 
-                    # Build missing clauses
-                    missing_clauses = []
-                    if is_contract:
-                        for m_clause in parsed.get("missing_clauses", []):
-                            missing_clauses.append(MissingClauseAlert(
-                                clause_name=m_clause.get("clause_name", "Standard Protective Clause"),
-                                importance=m_clause.get("importance", "HIGH"),
-                                reason=m_clause.get("reason", "Missing standard legal protection."),
-                                suggested_language=m_clause.get("suggested_language", "")
-                            ))
+                # Build missing clauses
+                missing_clauses = []
+                if is_contract:
+                    for m_clause in parsed.get("missing_clauses", []):
+                        missing_clauses.append(MissingClauseAlert(
+                            clause_name=m_clause.get("clause_name", "Standard Protective Clause"),
+                            importance=m_clause.get("importance", "HIGH"),
+                            reason=m_clause.get("reason", "Missing standard legal protection."),
+                            suggested_language=m_clause.get("suggested_language", "")
+                        ))
 
-                    high_count = sum(1 for r in identified_risks if r.severity in ["HIGH", "CRITICAL"])
-                    med_count = sum(1 for r in identified_risks if r.severity == "MEDIUM")
-                    low_count = sum(1 for r in identified_risks if r.severity in ["LOW", "SAFE"])
+                high_count = sum(1 for r in identified_risks if r.severity in ["HIGH", "CRITICAL"])
+                med_count = sum(1 for r in identified_risks if r.severity == "MEDIUM")
+                low_count = sum(1 for r in identified_risks if r.severity in ["LOW", "SAFE"])
 
-                    if is_contract:
-                        risk_score = parsed.get("overall_risk_score", min(100, high_count * 25 + med_count * 10))
-                        risk_level = parsed.get("risk_level", "HIGH" if risk_score > 60 else "MEDIUM" if risk_score > 30 else "LOW")
-                    else:
-                        risk_score = 0
-                        risk_level = "NON_CONTRACT"
-                        if not non_contract_notice:
-                            non_contract_notice = f"This document was identified as a {doc_category}. Standard commercial contract risk auditing does not apply."
+                if is_contract:
+                    risk_score = parsed.get("overall_risk_score", min(100, high_count * 25 + med_count * 10))
+                    risk_level = parsed.get("risk_level", "HIGH" if risk_score > 60 else "MEDIUM" if risk_score > 30 else "LOW")
+                else:
+                    risk_score = 0
+                    risk_level = "NON_CONTRACT"
+                    if not non_contract_notice:
+                        non_contract_notice = f"This document was identified as a {doc_category}. Standard commercial contract risk auditing does not apply."
 
-                    return ContractAuditReport(
-                        doc_id=doc_id,
-                        filename=filename,
-                        is_legal_contract=is_contract,
-                        document_category=doc_category,
-                        non_contract_notice=non_contract_notice,
-                        contract_type=contract_type,
-                        overall_risk_score=risk_score,
-                        risk_level=risk_level,
-                        executive_summary=parsed.get("executive_summary", "Document analysis completed."),
-                        key_parties=parsed.get("key_parties", []),
-                        governing_law=parsed.get("governing_law"),
-                        effective_dates_or_term=parsed.get("effective_dates_or_term"),
-                        high_risk_count=high_count,
-                        medium_risk_count=med_count,
-                        low_risk_count=low_count,
-                        identified_risks=identified_risks,
-                        missing_clauses=missing_clauses,
-                        audit_timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    )
+                return ContractAuditReport(
+                    doc_id=doc_id,
+                    filename=filename,
+                    is_legal_contract=is_contract,
+                    document_category=doc_category,
+                    non_contract_notice=non_contract_notice,
+                    contract_type=contract_type,
+                    overall_risk_score=risk_score,
+                    risk_level=risk_level,
+                    executive_summary=parsed.get("executive_summary", "Document analysis completed."),
+                    key_parties=parsed.get("key_parties", []),
+                    governing_law=parsed.get("governing_law"),
+                    effective_dates_or_term=parsed.get("effective_dates_or_term"),
+                    high_risk_count=high_count,
+                    medium_risk_count=med_count,
+                    low_risk_count=low_count,
+                    identified_risks=identified_risks,
+                    missing_clauses=missing_clauses,
+                    audit_timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                )
 
-                except Exception as ex:
-                    print(f"[LexiGuard AI Audit Error]: {str(ex)}")
-                    continue
+            except Exception as ex:
+                print(f"[LexiGuard AI Audit Parsing Error]: {str(ex)}")
 
         # Heuristic detection for fallback mode
         combined_text = " ".join([c["text"] for c in chunks[:5]]).lower() if chunks else ""
@@ -400,20 +399,10 @@ A concise 2-paragraph high-level overview of the document, its core topic, scope
 DOCUMENT EXCERPTS:
 {context_text}"""
 
-        model, api_key = self._get_model()
-        if api_key:
-            default_model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-            candidate_models = [default_model] + [m for m in self.model_candidates if m != default_model]
-            for m_name in candidate_models:
-                try:
-                    m = genai.GenerativeModel(m_name)
-                    response = m.generate_content(prompt)
-                    if response and response.text:
-                        return response.text
-                except Exception:
-                    continue
+        response_text, error = self._generate_content_with_fallback(prompt)
+        if response_text:
+            return response_text
 
         return f"### ⚖️ Legal Executive Summary for {filename}\n\nDocument successfully processed and indexed into ChromaDB. Contains {len(sample_chunks)} primary contract clauses ready for deep legal query and risk auditing."
 
 ai_service = AIService()
-

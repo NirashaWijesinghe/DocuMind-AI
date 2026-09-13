@@ -52,7 +52,7 @@ class ChatResponse(BaseModel):
     sources: List[SourceCitation]
     session_id: Optional[str] = None
     doc_id: Optional[str] = None
-    model_used: str = "gemini-1.5-flash"
+    model_used: str = "gemini-3.6-flash"
 
 class ChatSessionMeta(BaseModel):
     id: str

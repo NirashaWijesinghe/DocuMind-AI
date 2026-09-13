@@ -19,6 +19,16 @@ export interface DocumentMeta {
   document_category?: string | null;
 }
 
+export interface SampleContract {
+  id: string;
+  filename: string;
+  title: string;
+  description: string;
+  risk_level: string;
+  contract_type: string;
+  tags: string[];
+}
+
 export interface SourceCitation {
   page_number: number;
   content: string;
@@ -127,6 +137,23 @@ export async function fetchDocuments(): Promise<DocumentMeta[]> {
 
 export async function deleteDocument(docId: string): Promise<void> {
   await api.delete(`/api/documents/${docId}`);
+}
+
+export async function fetchSampleContracts(): Promise<SampleContract[]> {
+  try {
+    const response = await api.get("/api/documents/samples");
+    return response.data.samples || [];
+  } catch (error) {
+    console.error("Failed to fetch sample contracts", error);
+    return [];
+  }
+}
+
+export async function loadSampleContract(sampleIdOrFilename: string): Promise<{ success: boolean; message: string; document: DocumentMeta }> {
+  const response = await api.post("/api/documents/load-sample", {
+    sample_id: sampleIdOrFilename,
+  });
+  return response.data;
 }
 
 export async function sendChatMessage(
